@@ -1,16 +1,3 @@
-
-"""
-    all_primal_variables(model::JuMP.Model)
-
-Returns all primal variables of a JuMP model.
-"""
-function all_primal_variables(model::JuMP.Model)
-    return sort(
-        setdiff(all_variables(model), load_parameters(model));
-        by = (v) -> index(v).value,
-    )
-end
-
 """
     model_outputs(model::Function, problem_iterator::ProblemIterator)
 

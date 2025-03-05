@@ -23,6 +23,7 @@ import MLJFlux.train!
 using Optimisers
 
 using LinearAlgebra
+using DiffOpt
 
 export ArrowFile,
     CSVFile,
@@ -50,7 +51,8 @@ export ArrowFile,
     feasibility_evaluator,
     objective_evaluator,
     general_evaluator,
-    sobolev_pb_loss_generator
+    sobolev_pb_loss_generator,
+    random_pullback_primal_pairs
 
 include("datasetgen.jl")
 include("csvrecorder.jl")

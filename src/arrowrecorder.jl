@@ -7,7 +7,7 @@ Base.string(::Type{ArrowFile}) = "arrow"
 
 Record optimization problem solution to an Arrow file.
 """
-function record(recorder::Recorder{ArrowFile}, id::UUID; input = false)
+function record(recorder::Recorder{ArrowFile}, id::UUID; input = false, sensitivity = false)
     _filename = input ? filename_input(recorder) : filename(recorder)
     _filename = _filename * "_$(string(id))." * string(ArrowFile)
     model = recorder.model
@@ -15,6 +15,11 @@ function record(recorder::Recorder{ArrowFile}, id::UUID; input = false)
     status = JuMP.termination_status(model)
     primal_stat = JuMP.primal_status(model)
     dual_stat = JuMP.dual_status(model)
+    if sensitivity
+        parameters = load_parameters(model)
+    else
+        parameters = []
+    end
 
     primal_values = if in(primal_stat, DECISION_STATUS)
         [[value.(p)] for p in recorder.primal_variables]
@@ -34,10 +39,17 @@ function record(recorder::Recorder{ArrowFile}, id::UUID; input = false)
         0.0
     end
 
+    parameter_values = if sensitivity
+        [[pb.(p)] for p in parameters]
+    else
+        []
+    end
+
     df = (;
         id = [id],
         zip(Symbol.(name.(recorder.primal_variables)), primal_values)...,
         zip(Symbol.("dual_" .* name.(recorder.dual_variables)), dual_values)...,
+        zip(Symbol.("pb_" .* name.(parameters)), parameter_values)...,
     )
     if !input
         df = merge(

@@ -32,11 +32,21 @@ function filter_fn(model; check_primal = true, check_dual = true)
 end
 
 """
+    all_primal_variables(model::JuMP.Model)
+
+Returns all primal variables of a JuMP model.
+"""
+function all_primal_variables(model::JuMP.Model)
+    return sort(
+        setdiff(all_variables(model), load_parameters(model));
+        by = (v) -> index(v).value,
+    )
+end
+
+"""
     Recorder{T}(
         filename::String;
         filename_input::String = filename * "_input_",
-        filename_pullback_primal_perturbation_input::Union{String, Nothing} = nothing,
-        filename_pullback_output::String = filename * "_pullback_out_",
         primal_variables = [],
         dual_variables = [],
         filterfn = filter_fn,
@@ -54,8 +64,6 @@ Recorder of optimization problem solutions and, optionally, sensitivity informat
 # Arguments
 - `filename::String`: The name of the file to save the recorded solutions.
 - `filename_input::String`: The name of the file containing the input data.
-- `filename_pullback_primal_perturbation_input::String`:  The name of the file containing the input data about perturbation of the primal variables.
-- `filename_pullback_output::String`: The name of the file to save the recorded pullback output.
 - `primal_variables::Vector`: The primal variables to record.
 - `dual_variables::Vector`: The dual variables to record.
 - `filterfn::Function`: A function that filters the recorded solutions.
@@ -65,8 +73,6 @@ mutable struct Recorder{T<:FileType}
     model::JuMP.Model
     recorder_file::RecorderFile{T}
     recorder_file_input::RecorderFile{T}
-    recorder_file_pullback_input::Union{RecorderFile{T}, Nothing}
-    recorder_file_pullback_output::RecorderFile{T}
     primal_variables::Vector
     dual_variables::Vector
     filterfn::Function
@@ -74,8 +80,6 @@ mutable struct Recorder{T<:FileType}
     function Recorder{T}(
         filename::String;
         filename_input::String = filename * "_input_",
-        filename_pullback_primal_perturbation_input::Union{String, Nothing} = nothing,
-        filename_pullback_output::String = filename * "_pullback_out_",
         primal_variables = [],
         dual_variables = [],
         filterfn = filter_fn,
@@ -91,8 +95,6 @@ mutable struct Recorder{T<:FileType}
             model,
             RecorderFile{T}(filename),
             RecorderFile{T}(filename_input),
-            filename_pullback_primal_perturbation_input === nothing ? nothing : RecorderFile{T}(filename_pullback_primal_perturbation_input),
-            RecorderFile{T}(filename_pullback_output),
             primal_variables,
             dual_variables,
             filterfn,
@@ -102,14 +104,6 @@ end
 
 filename(recorder::Recorder) = filename(recorder.recorder_file)
 filename_input(recorder::Recorder) = filename(recorder.recorder_file_input)
-function filename_pullback_primal_perturbation_input(recorder::Recorder)
-    if isnothing(recorder.recorder_file_pullback_input)
-        return nothing
-    else
-        return filename(recorder.recorder_file_pullback_input)
-    end
-end
-filename_pullback_output(recorder::Recorder) = filename(recorder.recorder_file_pullback_output)
 get_primal_variables(recorder::Recorder) = recorder.primal_variables
 get_dual_variables(recorder::Recorder) = recorder.dual_variables
 get_filterfn(recorder::Recorder) = recorder.filterfn
@@ -118,8 +112,6 @@ function similar(recorder::Recorder{T}) where {T<:FileType}
     return Recorder{T}(
         filename(recorder);
         filename_input = filename_input(recorder),
-        filename_pullback_primal_perturbation_input = filename_pullback_primal_perturbation_input(recorder),
-        filename_pullback_output = filename_pullback_output(recorder),
         primal_variables = get_primal_variables(recorder),
         dual_variables = get_dual_variables(recorder),
         filterfn = get_filterfn(recorder),
@@ -159,7 +151,7 @@ abstract type JuMPParameterType <: AbstractParameterType end
 
 Iterator for optimization problem instances.
 """
-struct ProblemIterator{T<:Real} <: AbstractProblemIterator
+mutable struct ProblemIterator{T<:Real} <: AbstractProblemIterator
     model::JuMP.Model
     ids::Vector{UUID}
     pairs::Dict{VariableRef,Vector{T}}
@@ -249,6 +241,18 @@ function _dataframe_to_dict(df::DataFrame, model_file::AbstractString)
     return _dataframe_to_dict(df, parameters)
 end
 
+function random_pullback_primal_pairs(
+    problem_iterator::ProblemIterator{T},
+    num_pullbacks::Integer,
+) where {T<:Real}
+    pullback_primal_pairs = Dict{VariableRef,Vector{T}}()
+    primal_variables = all_primal_variables(problem_iterator.model)
+    for x in primal_variables
+        pullback_primal_pairs[x] = randn(T, num_pullbacks)
+    end
+    return pullback_primal_pairs
+end
+
 function load(
     model_file::AbstractString,
     input_file::AbstractString,
@@ -256,6 +260,7 @@ function load(
     batch_size::Union{Nothing,Integer} = nothing,
     ignore_ids::Vector{UUID} = UUID[],
     param_type::Type{<:AbstractParameterType} = JuMPParameterType,
+    pullback_generator::Function = (args...) -> Dict{VariableRef,Vector{T}}(),
 ) where {T<:FileType}
     # Load full set
     df = load(input_file, T)
@@ -272,17 +277,21 @@ function load(
     # No batch
     if isnothing(batch_size)
         pairs = _dataframe_to_dict(df, model_file)
-        return ProblemIterator(pairs; ids = ids, param_type = param_type)
+        problem_iterator = ProblemIterator(pairs; ids = ids, param_type = param_type)
+        problem_iterator.pullback_primal_pairs = pullback_generator(problem_iterator, length(ids))
+        return problem_iterator
     end
     # Batch
     num_batches = ceil(Int, length(ids) / batch_size)
     idx_range = (i) -> (i-1)*batch_size+1:min(i * batch_size, length(ids))
-    return (i) -> ProblemIterator(
-        _dataframe_to_dict(df[idx_range(i), :], model_file);
-        ids = ids[idx_range(i)],
-        param_type = param_type,
-    ),
-    num_batches
+    return (i) -> begin problem_iterator = ProblemIterator(
+            _dataframe_to_dict(df[idx_range(i), :], model_file);
+            ids = ids[idx_range(i)],
+            param_type = param_type,
+        )
+        problem_iterator.pullback_primal_pairs = pullback_generator(problem_iterator, length(ids))
+        return problem_iterator
+    end,num_batches
 end
 
 """
@@ -318,6 +327,19 @@ function update_model!(
     end
 end
 
+function update_diffopt_model!(
+    model::JuMP.Model,
+    pairs::Dict,
+    idx::Integer,
+)
+    for (x, val) in pairs
+        MOI.set(model, DiffOpt.ReverseVariablePrimal(), x, val[idx])
+    end
+    if !isempty(pairs)
+        DiffOpt.reverse_differentiate!(model)
+    end
+end
+
 """
     solve_and_record(problem_iterator::ProblemIterator, recorder::Recorder, idx::Integer)
 
@@ -334,8 +356,10 @@ function solve_and_record(
     optimize!(model)
     status = recorder.filterfn(model)
     early_stop_bool = problem_iterator.early_stop(model, status, recorder)
+    sensitivity = !isempty(problem_iterator.pullback_primal_pairs)
     if status
-        record(recorder, problem_iterator.ids[idx])
+        update_diffopt_model!(model, problem_iterator.pullback_primal_pairs, idx)
+        record(recorder, problem_iterator.ids[idx]; sensitivity = sensitivity)
         return 1, early_stop_bool
     end
     return 0, early_stop_bool

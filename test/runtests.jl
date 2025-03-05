@@ -17,6 +17,7 @@ using Optimisers
 using Statistics
 using Random
 using Zygote
+using DiffOpt
 
 const test_dir = dirname(@__FILE__)
 const examples_dir = joinpath(test_dir, "..", "examples")

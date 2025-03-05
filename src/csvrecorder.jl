@@ -7,13 +7,18 @@ Base.string(::Type{CSVFile}) = "csv"
 
 Record optimization problem solution to a CSV file.
 """
-function record(recorder::Recorder{CSVFile}, id::UUID; input = false)
+function record(recorder::Recorder{CSVFile}, id::UUID; input = false, sensitivity = false)
     _filename = input ? filename_input(recorder) : filename(recorder)
     _filename = _filename * "." * string(CSVFile)
 
     model = recorder.model
     primal_stat = JuMP.primal_status(model)
     dual_stat = JuMP.dual_status(model)
+    parameters = if sensitivity
+        load_parameters(model)
+    else
+        []
+    end
 
     if !isfile(_filename)
         open(_filename, "w") do f
@@ -23,6 +28,11 @@ function record(recorder::Recorder{CSVFile}, id::UUID; input = false)
             end
             for p in recorder.dual_variables
                 write(f, ",dual_$(name(p))")
+            end
+            if sensitivity
+                for p in parameters
+                    write(f, ",pb_$(name(p))")
+                end
             end
             if !input
                 write(f, ",objective")
@@ -54,6 +64,12 @@ function record(recorder::Recorder{CSVFile}, id::UUID; input = false)
         else
             for p in recorder.dual_variables
                 write(f, ",0")
+            end
+        end
+        if sensitivity
+            for p in parameters
+                val = MOI.get(model, DiffOpt.ReverseConstraintSet(), ParameterRef(p)).value
+                write(f, ",$val")
             end
         end
 
