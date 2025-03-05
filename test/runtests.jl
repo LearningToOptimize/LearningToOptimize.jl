@@ -14,6 +14,9 @@ using MLJ
 using CSV
 using DataFrames
 using Optimisers
+using Statistics
+using Random
+using Zygote
 
 const test_dir = dirname(@__FILE__)
 const examples_dir = joinpath(test_dir, "..", "examples")
@@ -30,7 +33,10 @@ include(joinpath(test_dir, "inconvexhull.jl"))
 
 include(joinpath(test_dir, "samplers.jl"))
 
+include(joinpath(test_dir, "metrics.jl"))
+
 @testset "LearningToOptimize.jl" begin
+    test_sobolev_pb_loss()
     test_load_parameters_model()
     test_load_parameters()
     test_line_sampler()

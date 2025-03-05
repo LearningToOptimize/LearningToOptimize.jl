@@ -183,7 +183,7 @@ input_features = Matrix(input_features)'
 output_variables = Matrix(output_variables)'
 
 # Define the optimizer
-optimizer = Flux.ADAM()
+optimizer = Flux.Adam()
 
 # Train the model
 Flux.train!(loss, Flux.params(model), [(input_features, output_variables)], optimizer)

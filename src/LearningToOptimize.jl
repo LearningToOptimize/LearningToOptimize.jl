@@ -22,6 +22,8 @@ using Random
 import MLJFlux.train!
 using Optimisers
 
+using LinearAlgebra
+
 export ArrowFile,
     CSVFile,
     ProblemIterator,
@@ -47,7 +49,8 @@ export ArrowFile,
     compress_batch_arrow,
     feasibility_evaluator,
     objective_evaluator,
-    general_evaluator
+    general_evaluator,
+    sobolev_pb_loss_generator
 
 include("datasetgen.jl")
 include("csvrecorder.jl")

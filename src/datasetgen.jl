@@ -32,14 +32,41 @@ function filter_fn(model; check_primal = true, check_dual = true)
 end
 
 """
-    Recorder(filename; primal_variables=[], dual_variables=[], filterfn=(model)-> termination_status(model) == MOI.OPTIMAL)
+    Recorder{T}(
+        filename::String;
+        filename_input::String = filename * "_input_",
+        filename_pullback_primal_perturbation_input::Union{String, Nothing} = nothing,
+        filename_pullback_output::String = filename * "_pullback_out_",
+        primal_variables = [],
+        dual_variables = [],
+        filterfn = filter_fn,
+        model = if length(primal_variables) > 0
+            owner_model(primal_variables[1])
+        elseif length(dual_variables) > 0
+            owner_model(dual_variables[1])
+        else
+            @error("No model provided")
+        end,
+    ) where T<:FileType
 
-Recorder of optimization problem solutions.
+Recorder of optimization problem solutions and, optionally, sensitivity information.
+
+# Arguments
+- `filename::String`: The name of the file to save the recorded solutions.
+- `filename_input::String`: The name of the file containing the input data.
+- `filename_pullback_primal_perturbation_input::String`:  The name of the file containing the input data about perturbation of the primal variables.
+- `filename_pullback_output::String`: The name of the file to save the recorded pullback output.
+- `primal_variables::Vector`: The primal variables to record.
+- `dual_variables::Vector`: The dual variables to record.
+- `filterfn::Function`: A function that filters the recorded solutions.
+- `model::JuMP.Model`: The model to record the solutions from.
 """
 mutable struct Recorder{T<:FileType}
     model::JuMP.Model
     recorder_file::RecorderFile{T}
     recorder_file_input::RecorderFile{T}
+    recorder_file_pullback_input::Union{RecorderFile{T}, Nothing}
+    recorder_file_pullback_output::RecorderFile{T}
     primal_variables::Vector
     dual_variables::Vector
     filterfn::Function
@@ -47,6 +74,8 @@ mutable struct Recorder{T<:FileType}
     function Recorder{T}(
         filename::String;
         filename_input::String = filename * "_input_",
+        filename_pullback_primal_perturbation_input::Union{String, Nothing} = nothing,
+        filename_pullback_output::String = filename * "_pullback_out_",
         primal_variables = [],
         dual_variables = [],
         filterfn = filter_fn,
@@ -62,6 +91,8 @@ mutable struct Recorder{T<:FileType}
             model,
             RecorderFile{T}(filename),
             RecorderFile{T}(filename_input),
+            filename_pullback_primal_perturbation_input === nothing ? nothing : RecorderFile{T}(filename_pullback_primal_perturbation_input),
+            RecorderFile{T}(filename_pullback_output),
             primal_variables,
             dual_variables,
             filterfn,
@@ -71,6 +102,14 @@ end
 
 filename(recorder::Recorder) = filename(recorder.recorder_file)
 filename_input(recorder::Recorder) = filename(recorder.recorder_file_input)
+function filename_pullback_primal_perturbation_input(recorder::Recorder)
+    if isnothing(recorder.recorder_file_pullback_input)
+        return nothing
+    else
+        return filename(recorder.recorder_file_pullback_input)
+    end
+end
+filename_pullback_output(recorder::Recorder) = filename(recorder.recorder_file_pullback_output)
 get_primal_variables(recorder::Recorder) = recorder.primal_variables
 get_dual_variables(recorder::Recorder) = recorder.dual_variables
 get_filterfn(recorder::Recorder) = recorder.filterfn
@@ -79,6 +118,8 @@ function similar(recorder::Recorder{T}) where {T<:FileType}
     return Recorder{T}(
         filename(recorder);
         filename_input = filename_input(recorder),
+        filename_pullback_primal_perturbation_input = filename_pullback_primal_perturbation_input(recorder),
+        filename_pullback_output = filename_pullback_output(recorder),
         primal_variables = get_primal_variables(recorder),
         dual_variables = get_dual_variables(recorder),
         filterfn = get_filterfn(recorder),
@@ -122,12 +163,14 @@ struct ProblemIterator{T<:Real} <: AbstractProblemIterator
     model::JuMP.Model
     ids::Vector{UUID}
     pairs::Dict{VariableRef,Vector{T}}
+    pullback_primal_pairs::Dict{VariableRef,Vector{T}}
     early_stop::Function
     param_type::Type{<:AbstractParameterType}
     pre_solve_hook::Function
     function ProblemIterator(
         ids::Vector{UUID},
         pairs::Dict{VariableRef,Vector{T}},
+        pullback_primal_pairs::Dict{VariableRef,Vector{T}} = Dict{VariableRef,Vector{T}}(),
         early_stop::Function = (args...) -> false,
         param_type::Type{<:AbstractParameterType} = POIParamaterType,
         pre_solve_hook::Function = (args...) -> nothing,
@@ -136,18 +179,24 @@ struct ProblemIterator{T<:Real} <: AbstractProblemIterator
         for (p, val) in pairs
             @assert length(ids) == length(val)
         end
-        return new{T}(model, ids, pairs, early_stop, param_type, pre_solve_hook)
+        if !isempty(pullback_primal_pairs)
+            for (p, val) in pullback_primal_pairs
+                @assert length(ids) == length(val)
+            end
+        end
+        return new{T}(model, ids, pairs, pullback_primal_pairs, early_stop, param_type, pre_solve_hook)
     end
 end
 
 function ProblemIterator(
     pairs::Dict{VariableRef,Vector{T}};
+    pullback_primal_pairs::Dict{VariableRef,Vector{T}} = Dict{VariableRef,Vector{T}}(),
     early_stop::Function = (args...) -> false,
     pre_solve_hook::Function = (args...) -> nothing,
     param_type::Type{<:AbstractParameterType} = POIParamaterType,
     ids = [uuid1() for _ = 1:length(first(values(pairs)))],
 ) where {T<:Real}
-    return ProblemIterator(ids, pairs, early_stop, param_type, pre_solve_hook)
+    return ProblemIterator(ids, pairs, pullback_primal_pairs, early_stop, param_type, pre_solve_hook)
 end
 
 """
@@ -158,12 +207,19 @@ Save optimization problem instances to a file.
 function save(
     problem_iterator::AbstractProblemIterator,
     filename::AbstractString,
-    file_type::Type{T},
+    file_type::Type{T};
+    pullback_filename::AbstractString = filename * "_pullback_",
 ) where {T<:FileType}
     kys = sort(collect(keys(problem_iterator.pairs)); by = (v) -> index(v).value)
     df = (; id = problem_iterator.ids,)
     df = merge(df, (; zip(Symbol.(kys), [problem_iterator.pairs[ky] for ky in kys])...))
     save(df, filename, file_type)
+    if !isempty(problem_iterator.pullback_primal_pairs)
+        kys = sort(collect(keys(problem_iterator.pullback_primal_pairs)); by = (v) -> index(v).value)
+        df = (; id = problem_iterator.ids,)
+        df = merge(df, (; zip(Symbol.(kys), [problem_iterator.pullback_primal_pairs[ky] for ky in kys])...))
+        save(df, pullback_filename, file_type)
+    end
     return nothing
 end
 
