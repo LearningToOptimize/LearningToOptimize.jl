@@ -198,12 +198,15 @@ function general_sampler(
     ],
     batch_id::UUID = uuid1(),
     save_file::AbstractString = split(file, ".mof.json")[1] * "_input_" * string(batch_id),
+    pullback_generator = (args...) -> Dict{VariableRef, Vector{Float64}}(),
+    save_file_pullback::AbstractString = split(file, ".mof.json")[1] * "_input_" * "_pullback_" * string(batch_id),
     filetype::Type{T} = ArrowFile,
 ) where {T<:FileType}
     parameters = load_parameters(file)
     vals = general_sampler(parameters, samplers = samplers)
     problem_iterator =
         ProblemIterator(Dict(parameters .=> [Vector(r) for r in eachrow(vals)]))
-    save(problem_iterator, save_file, filetype)
+    problem_iterator.pullback_primal_pairs = pullback_generator(problem_iterator, length(problem_iterator.ids))
+    save(problem_iterator, save_file, filetype; pullback_filename = save_file_pullback)
     return problem_iterator
 end

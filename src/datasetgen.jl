@@ -223,7 +223,7 @@ function _dataframe_to_dict(df::DataFrame, parameters::Vector{VariableRef})
                 name(p) == string(ky)
             end
             if isnothing(idx)
-                @error("Parameter $ky not found in model")
+                @error("Variable $ky not found in model")
                 return nothing
             end
             parameter = parameters[idx]
@@ -239,6 +239,17 @@ function _dataframe_to_dict(df::DataFrame, model_file::AbstractString)
     # Retrieve parameters
     parameters = LearningToOptimize.load_parameters(model)
     return _dataframe_to_dict(df, parameters)
+end
+
+function _dataframe_to_dict(df::DataFrame, df_pullback::DataFrame, model_file::AbstractString)
+    # Load model
+    model = read_from_file(model_file)
+    # Retrieve parameters
+    parameters = LearningToOptimize.load_parameters(model)
+    primal_variables = all_primal_variables(model)
+    pairs = _dataframe_to_dict(df, parameters)
+    pullback_primal_pairs = _dataframe_to_dict(df_pullback, primal_variables)
+    return pairs, pullback_primal_pairs
 end
 
 function random_pullback_primal_pairs(
@@ -257,6 +268,7 @@ function load(
     model_file::AbstractString,
     input_file::AbstractString,
     ::Type{T};
+    input_pullback_file::Union{Nothing,AbstractString},
     batch_size::Union{Nothing,Integer} = nothing,
     ignore_ids::Vector{UUID} = UUID[],
     param_type::Type{<:AbstractParameterType} = JuMPParameterType,
@@ -264,8 +276,8 @@ function load(
 ) where {T<:FileType}
     # Load full set
     df = load(input_file, T)
-    # Remove ignored ids
     df.id = UUID.(df.id)
+    # Remove ignored ids
     if !isempty(ignore_ids)
         df = filter(:id => (id) -> !(id in ignore_ids), df)
         if isempty(df)
@@ -274,23 +286,53 @@ function load(
         end
     end
     ids = df.id
+    # Load pullback set
+    df_pullback = if !isnothing(input_pullback_file)
+        _df = load(input_pullback_file, T)
+        _df.id = UUID.(df.id)
+        if !isempty(ignore_ids)
+            _df = filter(:id => (id) -> !(id in ignore_ids), _df)
+        end
+        return _df
+    else
+        DataFrame()
+    end
     # No batch
     if isnothing(batch_size)
-        pairs = _dataframe_to_dict(df, model_file)
-        problem_iterator = ProblemIterator(pairs; ids = ids, param_type = param_type)
-        problem_iterator.pullback_primal_pairs = pullback_generator(problem_iterator, length(ids))
-        return problem_iterator
+        if isempty(df_pullback)
+            pairs = _dataframe_to_dict(df, model_file)
+            problem_iterator = ProblemIterator(pairs; ids = ids, param_type = param_type)
+            problem_iterator.pullback_primal_pairs = pullback_generator(problem_iterator, length(ids))
+            return problem_iterator
+        else
+            pairs, pullback_primal_pairs = _dataframe_to_dict(df, df_pullback, model_file)
+            problem_iterator = ProblemIterator(pairs; ids = ids, param_type = param_type)
+            problem_iterator.pullback_primal_pairs = pullback_primal_pairs
+            return problem_iterator
+        end
     end
     # Batch
     num_batches = ceil(Int, length(ids) / batch_size)
     idx_range = (i) -> (i-1)*batch_size+1:min(i * batch_size, length(ids))
-    return (i) -> begin problem_iterator = ProblemIterator(
-            _dataframe_to_dict(df[idx_range(i), :], model_file);
-            ids = ids[idx_range(i)],
-            param_type = param_type,
-        )
-        problem_iterator.pullback_primal_pairs = pullback_generator(problem_iterator, length(ids))
-        return problem_iterator
+    return (i) -> begin
+        if isempty(df_pullback)
+            problem_iterator = ProblemIterator(
+                _dataframe_to_dict(df[idx_range(i), :], model_file);
+                ids = ids[idx_range(i)],
+                param_type = param_type,
+            )
+            problem_iterator.pullback_primal_pairs = pullback_generator(problem_iterator, length(ids))
+            return problem_iterator
+        else
+            pairs, pullback_primal_pairs = _dataframe_to_dict(
+                df[idx_range(i), :],
+                df_pullback[idx_range(i), :],
+                model_file,
+            )
+            problem_iterator = ProblemIterator(pairs; ids = ids[idx_range(i)], param_type = param_type)
+            problem_iterator.pullback_primal_pairs = pullback_primal_pairs
+            return problem_iterator
+        end
     end,num_batches
 end
 
