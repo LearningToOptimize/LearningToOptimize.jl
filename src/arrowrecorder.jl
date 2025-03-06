@@ -40,7 +40,7 @@ function record(recorder::Recorder{ArrowFile}, id::UUID; input = false, sensitiv
     end
 
     parameter_values = if sensitivity
-        [[pb.(p)] for p in parameters]
+        [[MOI.get(model, DiffOpt.ReverseConstraintSet(), ParameterRef(p)).value] for p in parameters]
     else
         []
     end
