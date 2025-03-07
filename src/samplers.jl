@@ -168,8 +168,8 @@ end
 
 Load the parameters from a saved jump model.
 """
-function load_parameters(file::AbstractString)
-    return load_parameters(read_from_file(file))
+function load_parameters(file::AbstractString; use_nlp_block = false)
+    return load_parameters(read_from_file(file; use_nlp_block = use_nlp_block))
 end
 
 """

@@ -9,7 +9,7 @@ function test_problem_iterator(path::AbstractString)
         # The problem to iterate over
         model = JuMP.Model(
             () -> DiffOpt.diff_optimizer(
-                Ipopt.Optimizer;
+                optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 0);
                 with_parametric_opt_interface = false,
             ),
         )
@@ -39,8 +39,7 @@ function test_problem_iterator(path::AbstractString)
             @test isfile(file_input)
             @test isfile(file_pullback_input)
         end
-        problem_iterator = ProblemIterator(Dict(p => collect(1.0:num_p)))
-        problem_iterator.pullback_primal_pairs = random_pullback_primal_pairs(problem_iterator, num_p)
+
         file_input = joinpath(path, "test_$(batch_id)_input") # file path
         file_pullback_input = file_input * "_pullback_." * string(filetype)
 
@@ -80,6 +79,8 @@ function test_problem_iterator(path::AbstractString)
         end
 
         @testset "solve_batch" begin
+            problem_iterator = ProblemIterator(Dict(p => collect(1.0:num_p)))
+            problem_iterator.pullback_primal_pairs = random_pullback_primal_pairs(problem_iterator, num_p)
             successfull_solves = solve_batch(problem_iterator, recorder)
 
             # Check if file exists and has the correct number of rows and columns
@@ -210,7 +211,7 @@ function test_load(
     @test isempty(problem_iterator.pullback_primal_pairs)
     # Test Load generating pullback primal pairs
     problem_iterator = LearningToOptimize.load(model_file, input_file, T; pullback_generator=random_pullback_primal_pairs)
-    @test length(values(first(problem_iterator.pullback_primal_pairs))) == length(ids)
+    @test length(first(values(problem_iterator.pullback_primal_pairs))) == length(ids)
     # Test load only half of the ids
     num_ids_ignored = floor(Int, length(ids) / 2)
     problem_iterator = LearningToOptimize.load(

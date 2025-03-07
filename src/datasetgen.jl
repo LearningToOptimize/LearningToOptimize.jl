@@ -233,17 +233,17 @@ function _dataframe_to_dict(df::DataFrame, parameters::Vector{VariableRef})
     return pairs
 end
 
-function _dataframe_to_dict(df::DataFrame, model_file::AbstractString)
+function _dataframe_to_dict(df::DataFrame, model_file::AbstractString; use_nlp_block=false)
     # Load model
-    model = read_from_file(model_file)
+    model = read_from_file(model_file; use_nlp_block = use_nlp_block)
     # Retrieve parameters
     parameters = LearningToOptimize.load_parameters(model)
     return _dataframe_to_dict(df, parameters)
 end
 
-function _dataframe_to_dict(df::DataFrame, df_pullback::DataFrame, model_file::AbstractString)
+function _dataframe_to_dict(df::DataFrame, df_pullback::DataFrame, model_file::AbstractString; use_nlp_block=false)
     # Load model
-    model = read_from_file(model_file)
+    model = read_from_file(model_file; use_nlp_block = use_nlp_block)
     # Retrieve parameters
     parameters = LearningToOptimize.load_parameters(model)
     primal_variables = all_primal_variables(model)
@@ -268,11 +268,12 @@ function load(
     model_file::AbstractString,
     input_file::AbstractString,
     ::Type{T};
-    input_pullback_file::Union{Nothing,AbstractString},
+    input_pullback_file::Union{Nothing,AbstractString} = nothing,
     batch_size::Union{Nothing,Integer} = nothing,
     ignore_ids::Vector{UUID} = UUID[],
     param_type::Type{<:AbstractParameterType} = JuMPParameterType,
     pullback_generator::Function = (args...) -> Dict{VariableRef,Vector{T}}(),
+    use_nlp_block = false
 ) where {T<:FileType}
     # Load full set
     df = load(input_file, T)
@@ -300,7 +301,7 @@ function load(
     # No batch
     if isnothing(batch_size)
         if isempty(df_pullback)
-            pairs = _dataframe_to_dict(df, model_file)
+            pairs = _dataframe_to_dict(df, model_file; use_nlp_block = use_nlp_block)
             problem_iterator = ProblemIterator(pairs; ids = ids, param_type = param_type)
             problem_iterator.pullback_primal_pairs = pullback_generator(problem_iterator, length(ids))
             return problem_iterator

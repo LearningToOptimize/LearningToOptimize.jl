@@ -48,7 +48,7 @@ function test_sobolev_pb_loss(; num_p = 30, num_s = 100, num_y = 2)
         ######## MSE Loss ########
         #******************* Flux Train ********************
         loss = Flux.mse
-        opt_state = Flux.setup(Optimisers.Adam(), model)
+        opt_state = Flux.setup(Optimisers.Adam(), model_mse)
         # Train the model_mse
         data = Flux.DataLoader((Xtrain, Ytrain), batchsize=32)
         log_mse = Vector{Float32}(undef, num_epochs)
