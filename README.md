@@ -8,7 +8,7 @@
 
 Learning to Optimize (LearningToOptimize) package that provides basic functionalities to help fit proxy models for parametric optimization problems.
 
-Have a look at our sister [HugginFace Organization](https://huggingface.co/LearningToOptimize), for datasets, pre-trained models and benchmarks.
+Have a look at our sister [HuggingFace Organization](https://huggingface.co/LearningToOptimize), for datasets, pre-trained models and benchmarks.
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://andrewrosemberg.github.io/LearningToOptimize.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://andrewrosemberg.github.io/LearningToOptimize.jl/dev/)
