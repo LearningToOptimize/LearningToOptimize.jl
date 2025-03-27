@@ -157,7 +157,7 @@ function train!(model, loss, opt_state, X, Y; _batchsize = 32, shuffle = true)
     Y = Y |> gpu
     data = Flux.DataLoader((X, Y), batchsize = batchsize, shuffle = shuffle)
     for d in data
-        ∇model, _ = gradient(model, d...) do m, x, y  # calculate the gradients
+        ∇model, _ = Flux.gradient(model, d...) do m, x, y  # calculate the gradients
             loss(m(x), y)
         end
         # insert what ever code you want here that needs gradient
