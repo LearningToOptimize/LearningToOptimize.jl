@@ -294,7 +294,7 @@ function load(
         if !isempty(ignore_ids)
             _df = filter(:id => (id) -> !(id in ignore_ids), _df)
         end
-        return _df
+        _df
     else
         DataFrame()
     end
