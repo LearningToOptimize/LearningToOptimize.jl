@@ -401,7 +401,7 @@ function solve_and_record(
     early_stop_bool = problem_iterator.early_stop(model, status, recorder)
     sensitivity = !isempty(problem_iterator.pullback_primal_pairs)
     if status
-        if termination_status(model) in ACCEPTED_TERMINATION_STATUSES
+        if in(termination_status(model), ACCEPTED_TERMINATION_STATUSES)
             update_diffopt_model!(model, problem_iterator.pullback_primal_pairs, idx)
         end
         record(recorder, problem_iterator.ids[idx]; sensitivity = sensitivity)
