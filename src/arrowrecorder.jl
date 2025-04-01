@@ -39,18 +39,27 @@ function record(recorder::Recorder{ArrowFile}, id::UUID; input = false, sensitiv
         0.0
     end
 
-    parameter_values = if sensitivity && in(status, ACCEPTED_TERMINATION_STATUSES)
-        [[MOI.get(model, DiffOpt.ReverseConstraintSet(), ParameterRef(p)).value] for p in parameters]
-    else
-        []
-    end
+    if sensitivity
+        parameter_values = if in(status, ACCEPTED_TERMINATION_STATUSES)
+            [[MOI.get(model, DiffOpt.ReverseConstraintSet(), ParameterRef(p)).value] for p in parameters]
+        else
+            [[0.0] for p in parameters]
+        end
 
-    df = (;
-        id = [id],
-        zip(Symbol.(name.(recorder.primal_variables)), primal_values)...,
-        zip(Symbol.("dual_" .* name.(recorder.dual_variables)), dual_values)...,
-        zip(Symbol.("pb_" .* name.(parameters)), parameter_values)...,
-    )
+        df = (;
+            id = [id],
+            zip(Symbol.(name.(recorder.primal_variables)), primal_values)...,
+            zip(Symbol.("dual_" .* name.(recorder.dual_variables)), dual_values)...,
+            zip(Symbol.("pb_" .* name.(parameters)), parameter_values)...,
+        )
+    else
+        df = (;
+            id = [id],
+            zip(Symbol.(name.(recorder.primal_variables)), primal_values)...,
+            zip(Symbol.("dual_" .* name.(recorder.dual_variables)), dual_values)...,
+        )
+    end
+    
     if !input
         df = merge(
             df,
