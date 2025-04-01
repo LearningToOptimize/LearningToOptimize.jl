@@ -24,13 +24,13 @@ function record(recorder::Recorder{ArrowFile}, id::UUID; input = false, sensitiv
     primal_values = if in(primal_stat, DECISION_STATUS)
         [[value.(p)] for p in recorder.primal_variables]
     else
-        [[zeros(length(p))] for p in recorder.primal_variables]
+        [zeros(length(p)) for p in recorder.primal_variables]
     end
 
     dual_values = if in(dual_stat, DECISION_STATUS)
         [[dual.(p)] for p in recorder.dual_variables]
     else
-        [[zeros(length(p))] for p in recorder.dual_variables]
+        [zeros(length(p)) for p in recorder.dual_variables]
     end
 
     objective = if in(status, ACCEPTED_TERMINATION_STATUSES)
@@ -59,7 +59,7 @@ function record(recorder::Recorder{ArrowFile}, id::UUID; input = false, sensitiv
             zip(Symbol.("dual_" .* name.(recorder.dual_variables)), dual_values)...,
         )
     end
-    
+
     if !input
         df = merge(
             df,
