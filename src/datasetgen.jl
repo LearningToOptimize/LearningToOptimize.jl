@@ -290,7 +290,7 @@ function load(
     # Load pullback set
     df_pullback = if !isnothing(input_pullback_file)
         _df = load(input_pullback_file, T)
-        _df.id = UUID.(df.id)
+        _df.id = UUID.(_df.id)
         if !isempty(ignore_ids)
             _df = filter(:id => (id) -> !(id in ignore_ids), _df)
         end
