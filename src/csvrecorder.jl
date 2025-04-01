@@ -66,7 +66,7 @@ function record(recorder::Recorder{CSVFile}, id::UUID; input = false, sensitivit
                 write(f, ",0")
             end
         end
-        if sensitivity
+        if sensitivity && in(JuMP.termination_status(model), ACCEPTED_TERMINATION_STATUSES)
             for p in parameters
                 val = MOI.get(model, DiffOpt.ReverseConstraintSet(), ParameterRef(p)).value
                 write(f, ",$val")

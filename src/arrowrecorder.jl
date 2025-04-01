@@ -39,7 +39,7 @@ function record(recorder::Recorder{ArrowFile}, id::UUID; input = false, sensitiv
         0.0
     end
 
-    parameter_values = if sensitivity
+    parameter_values = if sensitivity && in(status, ACCEPTED_TERMINATION_STATUSES)
         [[MOI.get(model, DiffOpt.ReverseConstraintSet(), ParameterRef(p)).value] for p in parameters]
     else
         []
