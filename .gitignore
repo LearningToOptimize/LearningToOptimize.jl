@@ -27,4 +27,3 @@ examples/unitcommitment/app/*
 *.html
 *.config.toml
 /docs/src/examples/*.md
-/dev/gpu_check_results.md
