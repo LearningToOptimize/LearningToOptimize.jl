@@ -15,10 +15,9 @@
 parametric optimization problem, written in JuMP, to (near-)optimal primal and/or dual solutions, orders of magnitude
 faster than a solver. It provides the shared layer that every learning-to-optimize (L2O) method needs — a problem
 wrapper with fixed input/output layouts, dataset generation, batched evaluation of objectives, violations and dual
-bounds, and numerical checks of the guarantees each method claims — so that a new method only implements what is
-specific to it. The reference method shipped here is the penalty ("soft loss") approach, eq. (2) of
-[Donti, Rolnick & Kolter, ICLR 2021](https://arxiv.org/abs/2104.12225); methods with guarantees live in sibling
-packages. See the [survey by Kotary et al. (IJCAI 2021)](https://arxiv.org/abs/2103.16378) for the field, and our
+bounds — so that a new method only implements what is specific to it. The reference method shipped here is the
+penalty ("soft loss") approach, eq. (2) of [Donti, Rolnick & Kolter, ICLR 2021](https://arxiv.org/abs/2104.12225);
+methods with completion steps (feasibility restoration, dual completion) live in sibling packages. See the [survey by Kotary et al. (IJCAI 2021)](https://arxiv.org/abs/2103.16378) for the field, and our
 [Hugging Face organization](https://huggingface.co/LearningToOptimize) for datasets, pre-trained models and benchmarks.
 
 ```mermaid
@@ -28,7 +27,7 @@ flowchart LR
     PIPE --> D["generate_data"]
     D --> T["train proxy"]
     T --> C["complete"]
-    C --> E["evaluate / check guarantees"]
+    C --> E["evaluate: objective,<br/>violations, dual bound"]
 ```
 
 ## Installation
@@ -79,7 +78,7 @@ evaluate(pipe, test.inputs, prediction)                  # objective, violations
 | package | what |
 |:--|:--|
 | `LearningToOptimize.jl` (this repo) | penalty method, Flux training, dataset generation; re-exports `L2OCore` |
-| [`lib/L2OCore`](lib/L2OCore) | the interface: method families, problem classes, evaluators, guarantees, datasets |
+| [`lib/L2OCore`](lib/L2OCore) | the interface: method families, problem classes, evaluators, datasets |
 | [L2ODLL.jl](https://github.com/LearningToOptimize/L2ODLL.jl) | Dual Lagrangian Learning: valid dual bounds for conic problems |
 | [L2OALM.jl](https://github.com/LearningToOptimize/L2OALM.jl) | primal-dual learning with an augmented Lagrangian |
 | [BatchNLPKernels.jl](https://github.com/LearningToOptimize/BatchNLPKernels.jl) | batched GPU kernels for ExaModels |
@@ -105,7 +104,7 @@ where $\theta$ is the parameter.
 
 In more technical terms, **amortized optimization** seeks to learn a function $f_\theta(x)$ that maps problem parameters $x$ to solutions $y$ that (approximately) minimize a given objective function subject to constraints. Modern methods leverage techniques like **differentiable optimization layers**, **input-convex neural networks**, or constraint-enforcing architectures (e.g., [DC3](https://openreview.net/pdf?id=0Ow8_1kM5Z)) to ensure that the learned proxy solutions are both feasible and performant. By coupling the solver and the model in an **end-to-end** pipeline, these approaches let the training objective directly reflect downstream metrics, improving speed and reliability.
 
-Recent advances also focus on **trustworthy** or **certifiable** proxies, where constraint satisfaction or performance bounds are guaranteed. This is crucial in domains like energy systems or manufacturing, where infeasible solutions can have large penalties or safety concerns. Overall, learning-based optimization frameworks aim to combine the advantages of ML (data-driven generalization) with the rigor of mathematical programming (constraint handling and optimality).
+Recent advances also focus on **trustworthy** proxies, whose outputs satisfy the constraints or come with valid performance bounds by construction. This is crucial in domains like energy systems or manufacturing, where infeasible solutions can have large penalties or safety concerns. Overall, learning-based optimization frameworks aim to combine the advantages of ML (data-driven generalization) with the rigor of mathematical programming (constraint handling and optimality).
 
 For a broader overview, see the [SIAM News article on trustworthy optimization proxies](https://www.siam.org/publications/siam-news/articles/fusing-artificial-intelligence-and-optimization-with-trustworthy-optimization-proxies/), which highlights the growing synergy between AI and classical optimization.
 

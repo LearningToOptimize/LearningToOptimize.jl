@@ -7,7 +7,8 @@ Thanks for helping! Issues and pull requests are welcome.
   changes to the interface itself go in this repository.
 - **Tests:** `julia --project=lib/L2OCore -e 'using Pkg; Pkg.test()'` for the core and
   `julia --project -e 'using Pkg; Pkg.develop(path="lib/L2OCore"); Pkg.test()'` for the main package. Keep tests
-  small, seeded and fast. Every mathematical claim a method makes should be a named guarantee with a numerical check.
+  small, seeded and fast. Test the mathematical properties of a method numerically (e.g. a completion satisfies the
+  equalities to tolerance, a dual bound is below the solver optimum, gradients match finite differences).
 - **Format:** run `using JuliaFormatter; format(".")` before pushing (CI checks it).
 - **Docs:** every exported symbol needs a docstring; build locally with
   `julia --project=docs docs/make.jl` (after `Pkg.develop` of the package and `lib/L2OCore` in `docs`).
