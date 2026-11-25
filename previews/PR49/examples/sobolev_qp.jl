@@ -113,9 +113,13 @@ end
 # - **Cheaper labels**: `directions = RandomPullbacks()` records one random row
 #   of the Jacobian per sample (one reverse sensitivity solve) instead of all of
 #   it.
+# - **Flux**: `backend = ZygoteNestedAD()` (load `Zygote`) gives exact proxy
+#   Jacobians of a Flux `Chain` or any Zygote-differentiable callable; train
+#   with `Flux.gradient` and `loss(pipe, X, model(X); targets, proxy = model)`,
+#   or with `train_flux!` from LearningToOptimize.
 # - **Any proxy / any framework**: `backend = CentralDifferences()` (the
 #   default) approximates the proxy Jacobian with batched forward passes and
-#   works with Flux models or plain functions, and through completion layers
+#   works with any callable and any outer AD, and through completion layers
 #   (`through_completion = true`).
 # - **Self-supervised methods**: wrap a penalty or augmented-Lagrangian method
 #   instead of `SupervisedMSE`; the dataset then carries derivative labels but
