@@ -42,6 +42,7 @@ include("jump_evaluator.jl")
 include("guarantees.jl")
 include("data.jl")
 include("pipeline.jl")
+include("supervised.jl")
 
 # Method hierarchy and proxies
 export AbstractL2OMethod,
@@ -109,6 +110,7 @@ export AbstractParameterSampler,
     AbstractDerivativeLabels,
     JacobianLabels,
     PullbackLabels,
+    PushforwardLabels,
     num_samples,
     with_derivatives,
     solve_instances
@@ -126,6 +128,7 @@ export AbstractDecomposition,
     train_proxy!,
     AbstractMethodWrapper,
     inner_method,
-    extra_loss
+    extra_loss,
+    SupervisedMSE
 
 end # module L2OCore

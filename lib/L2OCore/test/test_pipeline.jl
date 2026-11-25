@@ -1,5 +1,5 @@
 using JuMP, Test, L2OCore, Random
-import HiGHS
+import HiGHS, Clarabel
 
 struct ToyPrimal <: AbstractPrimalMethod end
 struct ToyDual <: AbstractDualMethod end
@@ -83,6 +83,10 @@ end
     @test size(sub.derivatives.seeds) == (4, 10)
     jd = L2ODataset(P; derivatives = JacobianLabels(rand(rng, 4, 2, 100)))
     @test size(jd[[1, 3]].derivatives.J) == (4, 2, 2)
+    fd =
+        L2ODataset(P; derivatives = PushforwardLabels(rand(rng, 2, 100), rand(rng, 4, 100)))
+    @test size(fd[[2, 5, 7]].derivatives.directions) == (2, 3)
+    @test size(fd[[2, 5, 7]].derivatives.values) == (4, 3)
     @test_throws DimensionMismatch L2ODataset(P; primal = rand(4, 3))
 end
 
@@ -148,4 +152,24 @@ L2OCore.generate_data(::Custom, pipe; n, kwargs...) = L2ODataset(zeros(2, n))
     pw = L2OPipeline(ParametricProblem(lp_problem()), w)
     @test loss(pw, zeros(2, 1), ones(4, 1)) == 5
     @test complete(pw, zeros(2, 1), ones(4, 1)).primal == fill(2.0, 4, 1)
+end
+
+@testset "SupervisedMSE (value supervision baseline)" begin
+    prob = ParametricProblem(qp_problem())
+    m = SupervisedMSE()
+    @test supports(m, ConvexQuadratic()) && supports(m, SmoothNonlinear())
+    @test guarantees(m) == (NoGuarantee(),)
+    pipe = L2OPipeline(prob, m)
+    @test output_dimension(pipe) == num_decision_variables(prob)
+    ds = generate_data(
+        pipe;
+        sampler = BoxSampler([0.5, -1.0], [1.5, 0.0]),
+        n = 5,
+        rng = Random.MersenneTwister(11),
+        optimizer = Clarabel.Optimizer,
+    )
+    @test ds.primal !== nothing && ds.dual === nothing
+    @test loss(pipe, ds.inputs, ds.primal; targets = ds) ≈ 0 atol = 1e-14
+    # MSE definition: mean over all n × N entries.
+    @test loss(pipe, ds.inputs, ds.primal .+ 2; targets = ds) ≈ 4
 end

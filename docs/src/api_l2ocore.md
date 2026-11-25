@@ -25,6 +25,7 @@ method_family
 PrimalFamily
 DualFamily
 PrimalDualFamily
+SupervisedMSE
 AbstractProxyModel
 predict_batch
 ```
@@ -88,6 +89,7 @@ with_derivatives
 AbstractDerivativeLabels
 JacobianLabels
 PullbackLabels
+PushforwardLabels
 solve_instances
 ```
 

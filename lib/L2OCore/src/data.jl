@@ -94,6 +94,20 @@ struct PullbackLabels{M<:AbstractMatrix{<:Real}} <: AbstractDerivativeLabels
 end
 
 """
+    PushforwardLabels(directions, values)
+
+Jacobian–vector products: for each sample `k`, `values[:, k] = J_k directions[:, k]`
+where `J_k = ∂x*/∂p`; `directions` is `num_parameters × N`, `values` is
+`num_decision_variables × N`. The forward-mode counterpart of
+[`PullbackLabels`](@ref): cheaper than full Jacobians when the number of
+parameters is large, and sufficient for directional Sobolev losses.
+"""
+struct PushforwardLabels{M<:AbstractMatrix{<:Real}} <: AbstractDerivativeLabels
+    directions::M
+    values::M
+end
+
+"""
     L2ODataset
 
 Columns-as-samples dataset (`N` samples):
@@ -172,6 +186,8 @@ _subset_derivatives(::Nothing, idx) = nothing
 _subset_derivatives(d::JacobianLabels, idx) = JacobianLabels(d.J[:, :, idx])
 _subset_derivatives(d::PullbackLabels, idx) =
     PullbackLabels(d.seeds[:, idx], d.values[:, idx])
+_subset_derivatives(d::PushforwardLabels, idx) =
+    PushforwardLabels(d.directions[:, idx], d.values[:, idx])
 
 Base.show(io::IO, ds::L2ODataset{T}) where {T} = print(
     io,
