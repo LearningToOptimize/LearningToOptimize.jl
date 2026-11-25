@@ -276,9 +276,9 @@ end
 """
     AbstractMethodWrapper <: AbstractL2OMethod
 
-A method that wraps another method and changes only part of its behaviour —
+A method that wraps another method and changes only part of its behavior —
 the hook for method-agnostic add-ons such as derivative (Sobolev) supervision
-or extra regularisers. A wrapper must implement
+or extra regularizers. A wrapper must implement
 
   - `L2OCore.inner_method(w)` → the wrapped method;
   - `L2OCore.extra_loss(w, pipe, inputs, output; targets, proxy, kwargs...)` →

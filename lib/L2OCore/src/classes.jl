@@ -34,8 +34,8 @@ struct LinearConic <: AbstractConvexClass end
 """
     ConvexQuadratic()
 
-Convex quadratic objective (`½xᵀQx + cᵀx` with `Q ⪰ 0` for minimisation,
-`Q ⪯ 0` for maximisation) and affine conic constraints.
+Convex quadratic objective (`½xᵀQx + cᵀx` with `Q ⪰ 0` for minimization,
+`Q ⪯ 0` for maximization) and affine conic constraints.
 """
 struct ConvexQuadratic <: AbstractConvexClass end
 

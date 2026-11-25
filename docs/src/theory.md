@@ -19,13 +19,13 @@ where each ``\mathcal{S}_i`` is a MathOptInterface set (`EqualTo`,
 `GreaterThan`, `Interval`, `Nonnegatives`, `SecondOrderCone`, …). In JuMP,
 ``p`` are variables in `MOI.Parameter`, ``x`` are all other variables
 (`decision_variables`), and the constraints, including variable bounds, are
-`constraint_refs` (in this order). Maximisation is handled by the sign
-``s = \texttt{objective\_sign}(problem) \in \{1, -1\}``: ``s f`` is minimised.
+`constraint_refs` (in this order). Maximization is handled by the sign
+``s = \texttt{objective\_sign}(problem) \in \{1, -1\}``: ``s f`` is minimized.
 
 A **proxy** ``\phi_\theta`` maps a batch of parameters ``P = [p_1, \dots,
 p_B]`` to raw outputs; a method's **completion** turns raw outputs into a
 prediction ``(\hat X, \hat Y)`` of primal and/or dual solutions. Training
-minimises a method-specific loss ``\mathbb{E}_{p \sim \mathcal{D}}
+minimizes a method-specific loss ``\mathbb{E}_{p \sim \mathcal{D}}
 [\ell(\phi_\theta(p); p)]`` over a parameter distribution ``\mathcal{D}``
 (an `AbstractParameterSampler`).
 
@@ -62,7 +62,7 @@ Dual variables follow the MathOptInterface convention returned by
 `JuMP.dual` (MOI documentation, "Duality"): for
 ``\min a_0^\top x + b_0`` s.t. ``A_i x + b_i \in \mathcal{C}_i`` the dual is
 ``\max -\sum_i b_i^\top y_i + b_0`` s.t. ``a_0 - \sum_i A_i^\top y_i = 0``,
-``y_i \in \mathcal{C}_i^*``; for maximisation the dual is
+``y_i \in \mathcal{C}_i^*``; for maximization the dual is
 ``\min \sum_i b_i^\top y_i + b_0`` s.t. ``a_0 + \sum_i A_i^\top y_i = 0``,
 with the *same* cones. Hence the signs of the duals depend only on the sets,
 not on the objective sense: ``y_k \in \mathcal{K}_k^*`` for conic blocks, and
@@ -73,7 +73,7 @@ is treated as the pair ``f \ge l`` (multiplier ``\max(y_r,0)``) and
 report for its `ConstraintDual` (strong duality holds with this convention
 on a QP with an `Interval` row, which the tests use as a reference). Writing ``f_r = a_r^\top x + b_r^\top p +
 b^0_r`` for the function value of row ``r`` (all rows, box and conic), the
-Lagrangian of the minimisation form (objective ``s f``) is
+Lagrangian of the minimization form (objective ``s f``) is
 
 ```math
 L(x, y; p) = s f(x; p) - \sum_{r} y_r\, f_r
@@ -83,8 +83,8 @@ L(x, y; p) = s f(x; p) - \sum_{r} y_r\, f_r
 
 For a box row the last two terms equal ``-\max(y_r,0)(f_r - l_r) -
 \min(y_r,0)(f_r - u_r)``; for a conic block they reduce to ``-y_k^\top f_k``.
-For maximisation, ``-L`` is exactly the MOI Lagrangian ``f + \sum_i y_i^\top
-(A_i x + b_i)``, which is why the minimisation form uses the same ``y``.
+For maximization, ``-L`` is exactly the MOI Lagrangian ``f + \sum_i y_i^\top
+(A_i x + b_i)``, which is why the minimization form uses the same ``y``.
 
 and the dual function is ``d(y; p) = \inf_x L(x, y; p)``. With
 ``r(y; p) = s(c + H p) - A^\top y``:
@@ -98,7 +98,7 @@ and the dual function is ``d(y; p) = \inf_x L(x, y; p)``. With
   y_i^\top b_i`` with ``z = -r``);
 - if ``sQ`` is not positive semidefinite, ``d(y; p) = -\infty`` for every
   ``y``, so `dual_bound` returns ``-\infty`` (``+\infty`` for
-  maximisation), even when the class was declared `ConvexQuadratic` by hand.
+  maximization), even when the class was declared `ConvexQuadratic` by hand.
 
 `dual_bound(evaluator, Y, P)` returns ``s\, d(y;p)`` together with the dual
 infeasibility (largest of the stationarity residual, sign violations and
@@ -107,7 +107,7 @@ dual-cone distances).
 **Weak duality.** If ``y`` is dual feasible (signs and dual cones as above,
 and ``r(y;p) = 0`` or ``r \in \operatorname{range}(sQ)``), then ``d(y; p) \le
 s\,\mathrm{OPT}(p)``: the returned bound is ``\le \mathrm{OPT}(p)`` for
-minimisation and ``\ge`` for maximisation. No convexity is needed: for any
+minimization and ``\ge`` for maximization. No convexity is needed: for any
 feasible ``x``, every subtracted term in (T4) is ``\ge 0`` by the sign
 conventions, so ``L(x,y;p) \le s f(x;p)``. Since dual feasibility does not
 depend on right-hand-side parameters, the optimal duals of one instance give
@@ -160,7 +160,7 @@ objective with solver optima gives the optimality gap of a primal proxy.
 
 ## The penalty method
 
-The reference method minimises the soft loss of eq. (2) in Donti, Rolnick and
+The reference method minimizes the soft loss of eq. (2) in Donti, Rolnick and
 Kolter (2021):
 
 ```math
@@ -180,7 +180,7 @@ constraints ``g(x) \in \mathcal K``, which eq. (2) does not cover. The loss
 is averaged over the batch (the expectation in the training objective).
 
 At a feasible point the penalty terms vanish and the loss equals the mean
-of ``s f`` (also for maximisation). The tests compare the loss with eq. (2)
+of ``s f`` (also for maximization). The tests compare the loss with eq. (2)
 written out by hand for a small LP, and its Zygote gradient with central
 finite differences on an LP and on an SOCP (where the cone distance is
 active).

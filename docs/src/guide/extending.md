@@ -21,7 +21,7 @@ L2OCore.supports(::MyMethod, ::AbstractConvexClass) = true
 # 2. Structure computed once per problem (default: predict everything).
 struct MyDecomposition <: L2OCore.AbstractDecomposition
     independent::Vector{Int}
-    # ... factorisations, index maps, ...
+    # ... factorizations, index maps, ...
 end
 L2OCore.output_dimension(d::MyDecomposition) = length(d.independent)
 L2OCore.decompose(problem, ::MyMethod) = MyDecomposition(...)

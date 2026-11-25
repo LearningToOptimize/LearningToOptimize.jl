@@ -10,7 +10,7 @@ using JuMP, Test, L2OCore
     @variable(m, x[1:2])
     @objective(m, Min, x[1] * x[2])  # indefinite
     @test detect_problem_class(m) isa SmoothNonlinear
-    @objective(m, Max, -x[1]^2 - x[2]^2)  # concave maximisation is convex
+    @objective(m, Max, -x[1]^2 - x[2]^2)  # concave maximization is convex
     @test detect_problem_class(m) isa ConvexQuadratic
 
     m = Model()

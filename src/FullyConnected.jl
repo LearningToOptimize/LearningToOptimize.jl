@@ -65,7 +65,7 @@ end
 
 # @forward((ConvexRegressor, :model), MLJFlux.Regressor)
 
-# Define a container to hold any optimiser specific parameters (if any):
+# Define a container to hold any optimizer-specific parameters (if any):
 struct ConvexRule <: Optimisers.AbstractRule
     rule::Optimisers.AbstractRule
     tol::Real
@@ -125,7 +125,7 @@ function MLJFlux.train(
     meter = MLJFlux.Progress(
         epochs + 1,
         dt = 0,
-        desc = "Optimising neural net:",
+        desc = "Optimizing neural net:",
         barglyphs = MLJFlux.BarGlyphs("[=> ]"),
         barlen = 25,
         color = :yellow,

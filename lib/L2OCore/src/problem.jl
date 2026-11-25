@@ -1,12 +1,12 @@
 """
     AbstractParametricProblem
 
-Supertype of parametric problems, independent of the modelling front end.
+Supertype of parametric problems, independent of the modeling front end.
 [`ParametricProblem`](@ref) is the JuMP front end; other front ends (for example
 an ExaModels-based one) subtype this and implement [`problem_class`](@ref),
 [`num_parameters`](@ref), [`num_decision_variables`](@ref),
 [`num_duals`](@ref), [`objective_sign`](@ref) and [`default_evaluator`](@ref)
-(and [`solve_instances`](@ref) to support solver-labelled data).
+(and [`solve_instances`](@ref) to support solver-labeled data).
 """
 abstract type AbstractParametricProblem end
 
@@ -118,8 +118,8 @@ dual_layout(p::ParametricProblem) = p.layout
 """
     objective_sign(problem) -> Int
 
-`1` for minimisation (and feasibility) problems, `-1` for maximisation;
-`objective_sign(problem) * objective` is always to be minimised.
+`1` for minimization (and feasibility) problems, `-1` for maximization;
+`objective_sign(problem) * objective` is always to be minimized.
 """
 objective_sign(p::ParametricProblem) =
     JuMP.objective_sense(p.model) == MOI.MAX_SENSE ? -1 : 1

@@ -6,7 +6,7 @@ LearningToOptimize ecosystem, implemented only through the `L2OCore`
 interface.
 
 The proxy ``x_θ(p)`` predicts all decision variables and is trained to
-minimise, over a distribution of parameters,
+minimize, over a distribution of parameters,
 
 ```math
 \\mathcal{L}(θ) = \\mathbb{E}_p\\Big[\\, s\\, f\\big(x_θ(p); p\\big)
@@ -14,7 +14,7 @@ minimise, over a distribution of parameters,
   + ρ_{\\mathrm{ineq}}\\, \\big\\|ν_{\\mathrm{ineq}}\\big(x_θ(p); p\\big)\\big\\| \\Big]
 ```
 
-where ``s = ±1`` turns maximisation into minimisation, ``ν`` are the
+where ``s = ±1`` turns maximization into minimization, ``ν`` are the
 element-wise constraint violations returned by
 [`L2OCore.row_violation`](@ref) (equality rows and all other rows,
 respectively, plus distances to non-decomposable cones) and ``\\|·\\|`` is the squared 2-norm when
@@ -22,7 +22,7 @@ respectively, plus distances to non-decomposable cones) and ``\\|·\\|`` is the 
 soft loss of eq. (2) in Donti, Rolnick & Kolter, "DC3: A learning method for
 optimization with hard constraints" (ICLR 2021, arXiv:2104.12225), with
 ``λ_h = ρ_eq`` and ``λ_g = ρ_ineq``; box rows (two-sided constraints, variable
-bounds) are penalised through ``\\max(l - f, 0) + \\max(f - u, 0)``, which is
+bounds) are penalized through ``\\max(l - f, 0) + \\max(f - u, 0)``, which is
 the ``\\mathrm{ReLU}(g)`` of eq. (2) for each side.
 
 The method supports the problem classes [`LinearConic`](@ref) and
@@ -102,7 +102,7 @@ function L2OCore.loss(m::PenaltyMethod, pipe, inputs, output; kwargs...)
     has_cones = Zygote.ignore(() -> !isempty(ev.cones))
     if has_cones
         # Distances to non-decomposable cones (e.g. second-order cones) are
-        # inequality constraints g(x) ∈ K: penalised with ρ_ineq like ReLU(g).
+        # inequality constraints g(x) ∈ K: penalized with ρ_ineq like ReLU(g).
         pen += m.ρ_ineq * _penalty_norm(L2OCore.cone_violation(ev, X, inputs), m.squared)
     end
     return (obj + pen) / B
@@ -113,7 +113,7 @@ end
                 batchsize = 32, optimiser = Optimisers.Adam(1e-3),
                 rng = Random.default_rng(), callback = nothing) -> Vector{Float64}
 
-Train a Flux model in place on `pipe` by minimising
+Train a Flux model in place on `pipe` by minimizing
 `loss(pipe, X, model(X); targets, proxy = model)` with mini-batches of columns
 of `data`. Works for every method whose loss is differentiable with Zygote.
 Returns the mean training loss of each epoch. `callback(epoch, loss)` is

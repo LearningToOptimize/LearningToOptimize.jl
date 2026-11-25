@@ -53,7 +53,7 @@ order (`max` is handled through the sense). Box-like sets become row bounds
 `l ≤ Ax + Bp + b ≤ u`; other cones are kept as blocks.
 
 All batch operations are matrix products and broadcasts, so they are
-vectorised, allocation-light and differentiable with array AD (Zygote,
+vectorized, allocation-light and differentiable with array AD (Zygote,
 Enzyme, …). [`cone_violation`](@ref) and the cone part of
 [`dual_bound`](@ref) evaluate `MOI.Utilities.distance_to_set` per column
 (differentiable with Zygote for the second-order cone; not GPU-friendly).
@@ -238,7 +238,7 @@ end
 equality_rows(ev::MatrixEvaluator) = ev.eq
 bound_rows(ev::MatrixEvaluator) = ev.bnd
 
-# Pseudo-inverse of sQ (minimisation form) and whether sQ ⪰ 0, computed once.
+# Pseudo-inverse of sQ (minimization form) and whether sQ ⪰ 0, computed once.
 # The quadratic dual function below is only valid for sQ ⪰ 0 (otherwise
 # inf_x L(x, y) = -∞ for every y), so non-convex objectives never get a bound.
 function _qpinv(ev::MatrixEvaluator{T}) where {T}
@@ -260,7 +260,7 @@ function dual_bound(
     atol::Real = 1e-6,
 )
     s = ev.sense
-    # Stationarity residual of the Lagrangian of the (minimisation-form) problem.
+    # Stationarity residual of the Lagrangian of the (minimization-form) problem.
     R = s .* (ev.c .+ ev.H * P) .- ev.A' * Y
     lf = _finite.(ev.lower)
     uf = _finite.(ev.upper)

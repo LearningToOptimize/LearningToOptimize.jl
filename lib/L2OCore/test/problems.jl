@@ -48,7 +48,7 @@ function qp_problem(; sense = MOI.MIN_SENSE)
     if sense == MOI.MIN_SENSE
         @objective(model, Min, f)
     else
-        @objective(model, Max, -f)  # concave maximisation: same optimiser
+        @objective(model, Max, -f)  # concave maximization: same optimizer
     end
     return model
 end

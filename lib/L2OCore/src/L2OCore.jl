@@ -21,8 +21,8 @@ Conventions:
   - **Batch-first:** the batch is always the *last* dimension. Parameters are
     `num_parameters × B`, primal predictions `num_decision_variables × B`, dual
     predictions `num_duals × B`.
-  - **Element-type generic:** evaluators are parametrised by the element type.
-  - **Minimal scalar indexing** in vectorised evaluation code so arrays can be moved to
+  - **Element-type generic:** evaluators are parametrized by the element type.
+  - **Minimal scalar indexing** in vectorized evaluation code so arrays can be moved to
     accelerators by a future kernels extension.
 """
 module L2OCore

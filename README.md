@@ -109,7 +109,7 @@ Recent advances also focus on **trustworthy** proxies, whose outputs satisfy the
 For a broader overview, see the [SIAM News article on trustworthy optimization proxies](https://www.siam.org/publications/siam-news/articles/fusing-artificial-intelligence-and-optimization-with-trustworthy-optimization-proxies/), which highlights the growing synergy between AI and classical optimization.
 
 
-## Dataset generation (solver-labelled data)
+## Dataset generation (solver-labeled data)
 
 This package provides a basic way of generating a dataset of the solutions of an optimization problem by varying the values of the parameters in the problem and recording it.
 

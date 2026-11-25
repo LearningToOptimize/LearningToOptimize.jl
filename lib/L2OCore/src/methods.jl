@@ -6,7 +6,7 @@ Supertype of every Learning-to-Optimize method.
 A method is a (usually small, immutable) struct holding its hyper-parameters.
 Concrete methods subtype one of the three *families*
 [`AbstractPrimalMethod`](@ref), [`AbstractDualMethod`](@ref) or
-[`AbstractPrimalDualMethod`](@ref); the family selects the fallback behaviour of
+[`AbstractPrimalDualMethod`](@ref); the family selects the fallback behavior of
 [`decompose`](@ref), [`generate_data`](@ref), [`loss`](@ref) and
 [`complete`](@ref).
 
@@ -96,7 +96,7 @@ outputs).
 `L2OCore` is framework-agnostic: **any callable** `f(inputs::AbstractMatrix)`
 returning an `output_dimension × B` array can be used as a proxy (a
 `Flux.Chain`, a closure over a `Lux` model and its state, a plain function).
-Subtyping `AbstractProxyModel` is only needed to attach extra behaviour, for
+Subtyping `AbstractProxyModel` is only needed to attach extra behavior, for
 example a custom [`predict_batch`](@ref) or trainable-parameter handling.
 """
 abstract type AbstractProxyModel end

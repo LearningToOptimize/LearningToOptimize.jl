@@ -9,7 +9,7 @@ values, constraint violations and dual bounds.
 Built-in backends:
 
   - [`MatrixEvaluator`](@ref): extracts `A`, `Q`, `c`, … once and evaluates with
-    array operations (vectorised, differentiable by array AD, element-type
+    array operations (vectorized, differentiable by array AD, element-type
     generic). Used for [`LinearConic`](@ref) and [`ConvexQuadratic`](@ref)
     problems whose parameters enter affinely.
   - [`JuMPEvaluator`](@ref): per-instance fallback through `JuMP.value`; works
@@ -37,7 +37,7 @@ abstract type AbstractEvaluator end
     batch_objective(ev::AbstractEvaluator, X, P) -> AbstractVector
 
 Objective value of each column of `X` (with parameters the matching column of
-`P`), in the sense of the model (maximisation objectives are not negated).
+`P`), in the sense of the model (maximization objectives are not negated).
 """
 function batch_objective end
 

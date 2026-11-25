@@ -1,6 +1,6 @@
 # Design of the LearningToOptimize ecosystem
 
-This page explains how the code is organised and why. The goal is that
+This page explains how the code is organized and why. The goal is that
 **implementing a new learning-to-optimize (L2O) method takes only the code
 that is specific to that method**. Data generation, evaluation of
 objectives, violations and dual bounds, samplers and dataset conventions are
@@ -110,7 +110,7 @@ classDiagram
   declare which problems its mathematics applies to (`supports`).
 - **Evaluators** are interchangeable backends for batched objective,
   constraint, violation and dual-bound evaluation.
-- **Wrappers** (`AbstractMethodWrapper`) add behaviour to *any* method
+- **Wrappers** (`AbstractMethodWrapper`) add behavior to *any* method
   (e.g. derivative supervision) by forwarding everything to an inner method and
   adding a loss term.
 
@@ -122,7 +122,7 @@ flowchart LR
     PP --> PIPE["L2OPipeline(problem, method)<br/>supports? → decompose"]
     PIPE --> GD["generate_data<br/>(sampler, solver)"]
     GD --> DS["L2ODataset<br/>inputs, primal?, dual?,<br/>objective?, derivatives?"]
-    DS --> TR["train proxy<br/>minimise loss(pipe, P, proxy(P))"]
+    DS --> TR["train proxy<br/>minimize loss(pipe, P, proxy(P))"]
     TR --> PX["proxy(P)"]
     PX --> CO["complete(pipe, P, raw)"]
     CO --> PR["Prediction(primal, dual)"]
@@ -185,8 +185,8 @@ with an error. Users can still override a mis-detected class explicitly
 (`ParametricProblem(model; class = …)`).
 
 **Why the pipeline object.** `L2OPipeline` checks support once, computes the
-decomposition once (which can be expensive: dualisation, Jacobian
-factorisations) and holds the evaluator. It replaces hidden caches stored in
+decomposition once (which can be expensive: dualization, Jacobian
+factorizations) and holds the evaluator. It replaces hidden caches stored in
 `model.ext`. Extension functions take `(method, pipe, …)` so packages dispatch
 on their own method type; fallbacks leave the other arguments untyped so these
 definitions are never ambiguous.
@@ -239,7 +239,7 @@ flowchart LR
   `ParametricProblem` already does), implementing the layout functions,
   `objective_sign` and `default_evaluator`.
 - Batched solvers can label data much faster than a loop over `optimize!`;
-  a batched-modelling layer (batched parameters/constraints over JuMP, with a
+  a batched-modeling layer (batched parameters/constraints over JuMP, with a
   bridge to ExaModels and NLPModels) would let `solve_instances` hand a whole
   batch to such solvers. This is tracked as a follow-up issue.
 
@@ -319,7 +319,7 @@ max violation, dual bound where the method predicts duals).
 All existing exports (`ProblemIterator`, `Recorder`, `ArrowFile`, `CSVFile`,
 samplers, `FullyConnected`, evaluators) are unchanged. `L2OCore` names are
 re-exported. Names that collide with other packages commonly loaded together
-(`MLJ.evaluate`) are resolved inside `LearningToOptimize` in favour of the
+(`MLJ.evaluate`) are resolved inside `LearningToOptimize` in favor of the
 `L2OCore` meaning; users that load MLJ too can write
 `LearningToOptimize.evaluate`.
 

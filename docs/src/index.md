@@ -21,13 +21,13 @@ parametric JuMP problem to (near-)optimal primal and/or dual solutions.
 
 - **[Theory](theory.md)** — notation, batched evaluation, the Lagrangian dual
   bound and the penalty method.
-- **[Design](design.md)** — how the ecosystem is organised (`lib/L2OCore`,
+- **[Design](design.md)** — how the ecosystem is organized (`lib/L2OCore`,
   method packages), the type hierarchy, data flow and method lifecycle.
 - **[Getting started](examples/penalty_lp.md)** — train a penalty proxy for a
   small LP in seconds.
 - **[Adding a method](guide/extending.md)** — what a method package implements.
 
-The sections below describe the solver-labelled dataset generation API
+The sections below describe the solver-labeled dataset generation API
 (`ProblemIterator`, recorders, samplers).
 
 ## Installation
