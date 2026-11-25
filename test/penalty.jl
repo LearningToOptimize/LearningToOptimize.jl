@@ -65,6 +65,9 @@ function test_penalty_method()
         after = loss(pipe, ref.inputs, model(ref.inputs))
         @test after < before
         @test hist[end] < hist[1]
+        # The generic L2OCore entry point dispatches to train_flux!.
+        small = Flux.f64(Chain(Dense(2 => 8, relu), Dense(8 => 3)))
+        @test length(train_proxy!(m, pipe, small, data; epochs = 3, rng)) == 3
         pred = complete(pipe, ref.inputs, model(ref.inputs))
         rep = evaluate(pipe, ref.inputs, pred)
         @test sum(abs.(rep.objective .- ref.objective)) / 16 < 0.5

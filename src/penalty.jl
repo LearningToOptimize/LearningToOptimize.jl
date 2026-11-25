@@ -118,6 +118,10 @@ Train a Flux model in place on `pipe` by minimizing
 of `data`. Works for every method whose loss is differentiable with Zygote.
 Returns the mean training loss of each epoch. `callback(epoch, loss)` is
 called after every epoch.
+
+For [`PenaltyMethod`](@ref) pipelines, the generic
+[`train_proxy!`](@ref L2OCore.train_proxy!)`(method, pipe, model, data; kwargs...)`
+calls `train_flux!`.
 """
 function train_flux!(
     pipe::L2OCore.L2OPipeline,
@@ -150,3 +154,6 @@ function train_flux!(
     end
     return history
 end
+
+L2OCore.train_proxy!(::PenaltyMethod, pipe::L2OCore.L2OPipeline, model, data; kwargs...) =
+    train_flux!(pipe, model, data; kwargs...)
