@@ -70,22 +70,24 @@ report = evaluate(pipe, test.inputs, prediction)
 
 sum(abs.(report.objective .- test.objective)) / 32, maximum(report.max_violation)
 
-# The penalty method makes no feasibility promise:
+# The penalty loss only discourages violations, so the proxy lands close to,
+# but not exactly on, the feasible set. The report separates equality and
+# inequality (here: capacity bound) violations:
 
-guarantees(method)
+maximum(report.max_equality_violation), maximum(report.max_inequality_violation)
 
-# Feasibility can still be measured with the named checks. With a tolerance
-# of `1e-2` the check typically fails: the proxy is close to, but not exactly
-# on, the feasible set. Methods with a completion step (DC3, DLL, …) are the
-# ones that turn such checks into guarantees.
+# Fraction of test instances whose worst violation is below `1e-2` (often
+# none at this training budget). Methods with a completion step (DC3, DLL, …)
+# are the ones that restore feasibility or dual feasibility exactly.
 
-check(Feasible(), problem, test.inputs, prediction; atol = 1e-2)
+count(<=(1e-2), report.max_violation) / 32
 
-# ## Adding guarantees with repair layers
+# ## Repair layers
 #
 # Repair layers wrap any primal method. `BoundedOutput` maps the network
-# output into the variable bounds during training and inference, so
-# `BoundFeasible` holds by construction:
+# output into the variable bounds during training and inference, so the
+# bounds hold by construction. Here the only inequalities are the capacity
+# bounds, so their largest violation is exactly zero:
 
 bounded = BoundedOutput(method)
 bpipe = L2OPipeline(problem, bounded)
@@ -100,15 +102,17 @@ train_flux!(
     optimiser = Flux.Optimisers.Adam(1e-2),
 )
 bpred = complete(bpipe, test.inputs, bproxy(test.inputs))
-guarantees(bounded), check(BoundFeasible(), problem, test.inputs, bpred; atol = 0.0)
+maximum(evaluate(pipe, test.inputs, bpred).max_inequality_violation)
 
 # `ProjectionRepair` projects the prediction onto the feasible set of each
-# instance at inference time (a small QP per instance), which gives
-# `Feasible` and never moves the prediction away from the optimum:
+# instance at inference time (a small QP per instance). The result is feasible
+# up to the solver tolerance, and since the projection onto a convex set is
+# nonexpansive it is never farther from the optimal solution than the raw
+# prediction:
 
 repaired = L2OPipeline(problem, ProjectionRepair(bounded, HiGHS.Optimizer))
 rpred = complete(repaired, test.inputs, bproxy(test.inputs))
-check(Feasible(), problem, test.inputs, rpred; atol = 1e-6)
+maximum(evaluate(pipe, test.inputs, rpred).max_violation)
 
 # Mean optimality gap before and after the repair:
 
