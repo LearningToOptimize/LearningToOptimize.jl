@@ -229,8 +229,8 @@ end
 function _cone_distances(F::AbstractMatrix, blocks)
     isempty(blocks) && return zeros(eltype(F), 0, size(F, 2))
     D = [
-        MOI.Utilities.distance_to_set(F[rows, k], set) for (rows, set) in blocks,
-        k in axes(F, 2)
+        MOI.Utilities.distance_to_set(F[rows, k], set) for
+        (rows, set) in blocks, k in axes(F, 2)
     ]
     return D::AbstractMatrix
 end

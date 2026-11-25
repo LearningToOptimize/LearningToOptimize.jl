@@ -62,12 +62,7 @@ function L2OCore.decompose(problem, m::PenaltyMethod)
             "evaluator is needed (planned).",
         ),
     )
-    return invoke(
-        L2OCore.decompose,
-        Tuple{Any,L2OCore.AbstractL2OMethod},
-        problem,
-        m,
-    )
+    return invoke(L2OCore.decompose, Tuple{Any,L2OCore.AbstractL2OMethod}, problem, m)
 end
 
 """

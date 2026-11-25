@@ -65,7 +65,13 @@ end
         @test all(infeas .<= 1e-8)
         s = objective_sign(prob)
         @test all(s .* bound .<= s .* ds.objective .+ 1e-6)
-        @test check(ValidDualBound(), prob, P, Prediction(dual = Y); reference = ds.objective).passed
+        @test check(
+            ValidDualBound(),
+            prob,
+            P,
+            Prediction(dual = Y);
+            reference = ds.objective,
+        ).passed
     end
 end
 
@@ -78,7 +84,8 @@ end
     @constraint(m, x[1] + x[2] == p)
     @objective(m, Min, x[1] * x[2])
     prob = ParametricProblem(m; class = ConvexQuadratic())
-    bound, infeas = dual_bound(default_evaluator(prob), zeros(num_duals(prob), 2), ones(1, 2))
+    bound, infeas =
+        dual_bound(default_evaluator(prob), zeros(num_duals(prob), 2), ones(1, 2))
     @test all(==(-Inf), bound)
     @test all(isinf, infeas)
 end
@@ -94,7 +101,7 @@ end
     ev = default_evaluator(prob)
     bnd = L2OCore.bound_rows(ev)
     Ab = ev.A[bnd, :]
-    var_of_row = [findfirst(!iszero, Ab[j, :]) for j in 1:size(Ab, 1)]
+    var_of_row = [findfirst(!iszero, Ab[j, :]) for j = 1:size(Ab, 1)]
     is_lower = isfinite.(ev.lower[bnd])
     function complete_dll(y)  # y: duals of the non-bound rows
         Y = zeros(num_duals(prob))
@@ -109,10 +116,10 @@ end
     yrand = randn(rng, nb, 10)
     yrand[ev.upper[.!bnd] .== Inf, :] .= abs.(yrand[ev.upper[.!bnd] .== Inf, :])
     yrand[ev.lower[.!bnd] .== -Inf, :] .= .-abs.(yrand[ev.lower[.!bnd] .== -Inf, :])
-    Y = reduce(hcat, complete_dll(yrand[:, k]) for k in 1:10)
+    Y = reduce(hcat, complete_dll(yrand[:, k]) for k = 1:10)
     @test check(ValidDualBound(), prob, P, Prediction(dual = Y); reference = ds.objective).passed
     # optimal y recovers the optimal value (strongest bound, Theorem 2)
-    Ystar = reduce(hcat, complete_dll(ds.dual[.!bnd, k]) for k in 1:10)
+    Ystar = reduce(hcat, complete_dll(ds.dual[.!bnd, k]) for k = 1:10)
     bound, infeas = dual_bound(ev, Ystar, P)
     @test all(infeas .<= 1e-9)
     @test bound ≈ ds.objective atol = 1e-6
