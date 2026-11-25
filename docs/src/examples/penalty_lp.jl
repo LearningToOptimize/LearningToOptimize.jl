@@ -24,7 +24,10 @@ problem = ParametricProblem(model)
 
 # The problem class is detected from the model and the layouts are fixed:
 
-problem_class(problem), num_parameters(problem), num_decision_variables(problem), num_duals(problem)
+problem_class(problem),
+num_parameters(problem),
+num_decision_variables(problem),
+num_duals(problem)
 
 # ## Method and pipeline
 #
@@ -47,8 +50,15 @@ test = generate_data(pipe; sampler, n = 32, rng, optimizer = HiGHS.Optimizer)
 # ## Training
 
 proxy = Flux.f64(Chain(Dense(2 => 32, relu), Dense(32 => 3)))
-history = train_flux!(pipe, proxy, train; epochs = 200, batchsize = 32, rng,
-    optimiser = Flux.Optimisers.Adam(1e-2))
+history = train_flux!(
+    pipe,
+    proxy,
+    train;
+    epochs = 200,
+    batchsize = 32,
+    rng,
+    optimiser = Flux.Optimisers.Adam(1e-2),
+)
 history[[1, 50, 100, 200]]
 
 # ## Evaluation
@@ -64,6 +74,9 @@ sum(abs.(report.objective .- test.objective)) / 32, maximum(report.max_violation
 
 guarantees(method)
 
-# Feasibility can still be measured with the named checks:
+# Feasibility can still be measured with the named checks. With a tolerance
+# of `1e-2` the check typically fails: the proxy is close to, but not exactly
+# on, the feasible set. Methods with a completion step (DC3, DLL, …) are the
+# ones that turn such checks into guarantees.
 
 check(Feasible(), problem, test.inputs, prediction; atol = 1e-2)
