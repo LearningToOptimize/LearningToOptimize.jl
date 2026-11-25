@@ -31,6 +31,7 @@ include(joinpath(test_dir, "inconvexhull.jl"))
 include(joinpath(test_dir, "samplers.jl"))
 
 include(joinpath(test_dir, "penalty.jl"))
+using .PenaltyTests: test_penalty_method
 
 @testset "LearningToOptimize.jl" begin
     test_load_parameters_model()

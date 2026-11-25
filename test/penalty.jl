@@ -1,6 +1,11 @@
+# Own module: the main test file loads MLJ, whose exports (`Model`,
+# `evaluate`, ...) clash with JuMP and L2OCore names.
+module PenaltyTests
+
 using Test, JuMP, Random, Flux, HiGHS
 using LearningToOptimize
-import LearningToOptimize: L2OCore
+
+export test_penalty_method
 
 function penalty_test_lp()
     model = Model()
@@ -59,3 +64,5 @@ function test_penalty_method()
         @test check(NoGuarantee(), prob, ref.inputs, pred).passed
     end
 end
+
+end # module
