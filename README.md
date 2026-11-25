@@ -2,24 +2,92 @@
 <div style="overflow: auto;">
     <h1 style="float: left;">LearningToOptimize.jl</h1>
     <div style="float: right; margin-left: 20px;">
-      <img src="https://raw.githubusercontent.com/andrewrosemberg/LearningToOptimize.jl/main/LearningToOptimize.jpg" alt="Logo" width="100" align="right">
+      <img src="https://raw.githubusercontent.com/LearningToOptimize/LearningToOptimize.jl/main/LearningToOptimize.jpg" alt="Logo" width="100" align="right">
     </div>
 </div>
 
-Learning to Optimize (LearningToOptimize) package that provides basic functionalities to help fit proxy models for parametric optimization problems.
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://LearningToOptimize.github.io/LearningToOptimize.jl/stable/)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://LearningToOptimize.github.io/LearningToOptimize.jl/dev/)
+[![Build Status](https://github.com/LearningToOptimize/LearningToOptimize.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/LearningToOptimize/LearningToOptimize.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/LearningToOptimize/LearningToOptimize.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/LearningToOptimize/LearningToOptimize.jl)
 
-Have a look at our sister [HuggingFace Organization](https://huggingface.co/LearningToOptimize), for datasets, pre-trained models and benchmarks.
+**LearningToOptimize.jl** trains *optimization proxies*: machine-learning models that map the parameters of a
+parametric optimization problem, written in JuMP, to (near-)optimal primal and/or dual solutions, orders of magnitude
+faster than a solver. It provides the shared layer that every learning-to-optimize (L2O) method needs — a problem
+wrapper with fixed input/output layouts, dataset generation, batched evaluation of objectives, violations and dual
+bounds, and numerical checks of the guarantees each method claims — so that a new method only implements what is
+specific to it. The reference method shipped here is the penalty ("soft loss") approach, eq. (2) of
+[Donti, Rolnick & Kolter, ICLR 2021](https://arxiv.org/abs/2104.12225); methods with guarantees live in sibling
+packages. See the [survey by Kotary et al. (IJCAI 2021)](https://arxiv.org/abs/2103.16378) for the field, and our
+[Hugging Face organization](https://huggingface.co/LearningToOptimize) for datasets, pre-trained models and benchmarks.
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://andrewrosemberg.github.io/LearningToOptimize.jl/stable/)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://andrewrosemberg.github.io/LearningToOptimize.jl/dev/)
-[![Build Status](https://github.com/andrewrosemberg/LearningToOptimize.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/andrewrosemberg/LearningToOptimize.jl/actions/workflows/CI.yml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/andrewrosemberg/LearningToOptimize.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/andrewrosemberg/LearningToOptimize.jl)
+```mermaid
+flowchart LR
+    M["JuMP model<br/>with parameters"] --> PP["ParametricProblem"]
+    PP --> PIPE["L2OPipeline(problem, method)"]
+    PIPE --> D["generate_data"]
+    D --> T["train proxy"]
+    T --> C["complete"]
+    C --> E["evaluate / check guarantees"]
+```
 
-# Flowchart Summary
+## Installation
 
-![flowchart](docs/src/assets/L2O.png)
+```julia
+] add LearningToOptimize
+```
 
-# Background
+Until `L2OCore` is registered, install the development version with
+`] add https://github.com/LearningToOptimize/LearningToOptimize.jl` on Julia ≥ 1.11 (the `lib/L2OCore`
+subpackage is resolved automatically), or on Julia 1.10 first
+`] add https://github.com/LearningToOptimize/LearningToOptimize.jl:lib/L2OCore`.
+
+## Minimal example
+
+```julia
+using LearningToOptimize, JuMP, HiGHS, Flux, Random
+
+model = Model()
+@variable(model, d[1:2] in MOI.Parameter.([1.0, 2.0]))   # parameters
+@variable(model, 0 <= g[1:3] <= 4)
+@constraint(model, g[1] + g[2] == d[1])
+@constraint(model, g[3] == d[2])
+@objective(model, Min, g[1] + 3g[2] + 2g[3])
+
+problem = ParametricProblem(model)                       # detects LinearConic
+pipe = L2OPipeline(problem, PenaltyMethod())
+sampler = BoxSampler([0.5, 1.0], [1.5, 2.0])
+train = generate_data(pipe; sampler, n = 128)            # self-supervised: parameters only
+test = generate_data(pipe; sampler, n = 32, optimizer = HiGHS.Optimizer)
+
+proxy = Flux.f64(Chain(Dense(2 => 32, relu), Dense(32 => 3)))
+train_flux!(pipe, proxy, train; epochs = 200, optimiser = Flux.Optimisers.Adam(1e-2))
+
+prediction = complete(pipe, test.inputs, proxy(test.inputs))
+evaluate(pipe, test.inputs, prediction)                  # objective, violations, gaps
+```
+
+## What you need to provide
+
+- A JuMP model whose instance data are parameters (`@variable(model, p in MOI.Parameter(value))`).
+- A parameter distribution: `BoxSampler`, `ScaledSampler`, or any function `(rng, n) -> matrix`.
+- A proxy: any callable mapping a `num_parameters × batch` matrix to the method's output (Flux, Lux, plain Julia).
+- A solver, only for methods (or evaluations) that need labels or reference optima.
+
+## The LearningToOptimize ecosystem
+
+| package | what |
+|:--|:--|
+| `LearningToOptimize.jl` (this repo) | penalty method, Flux training, dataset generation; re-exports `L2OCore` |
+| [`lib/L2OCore`](lib/L2OCore) | the interface: method families, problem classes, evaluators, guarantees, datasets |
+| [L2ODLL.jl](https://github.com/LearningToOptimize/L2ODLL.jl) | Dual Lagrangian Learning: valid dual bounds for conic problems |
+| [L2OALM.jl](https://github.com/LearningToOptimize/L2OALM.jl) | primal-dual learning with an augmented Lagrangian |
+| [BatchNLPKernels.jl](https://github.com/LearningToOptimize/BatchNLPKernels.jl) | batched GPU kernels for ExaModels |
+| [DecisionRules.jl](https://github.com/LearningToOptimize/DecisionRules.jl) | multistage decision rules |
+
+How the pieces fit, and how to add a method, is explained in the [design page](https://LearningToOptimize.github.io/LearningToOptimize.jl/dev/design/).
+
+## Background
 
 Parametric optimization problems arise when certain elements (e.g., coefficients, constraints) may vary according to problem parameters. A general form of a parameterized convex optimization problem is 
 
@@ -41,13 +109,9 @@ Recent advances also focus on **trustworthy** or **certifiable** proxies, where 
 
 For a broader overview, see the [SIAM News article on trustworthy optimization proxies](https://www.siam.org/publications/siam-news/articles/fusing-artificial-intelligence-and-optimization-with-trustworthy-optimization-proxies/), which highlights the growing synergy between AI and classical optimization.
 
-# Installation
 
-```julia
-] add LearningToOptimize
-```
+## Dataset generation (solver-labelled data)
 
-## Generate Dataset
 This package provides a basic way of generating a dataset of the solutions of an optimization problem by varying the values of the parameters in the problem and recording it.
 
 ### The Problem Iterator
@@ -224,8 +288,6 @@ predicted solution for each instance, and the overall inference time and allocat
 evaluation = general_evaluator(problem_iterator, mach)
 ```
 
-## Coming Soon
+## Citation
 
-Future features:
- - ML objectives that penalize infeasible predictions;
- - Warm-start from predicted solutions.
+If you use LearningToOptimize.jl, please cite it using the metadata in [`CITATION.cff`](CITATION.cff).

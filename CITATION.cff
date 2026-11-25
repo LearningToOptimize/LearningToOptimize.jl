@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "LearningToOptimize.jl: learning optimization proxies for parametric JuMP models"
+authors:
+  - name: "LearningToOptimize.jl contributors"
+repository-code: "https://github.com/LearningToOptimize/LearningToOptimize.jl"
+url: "https://LearningToOptimize.github.io/LearningToOptimize.jl"
+license: MIT
+type: software
+keywords:
+  - learning to optimize
+  - optimization proxies
+  - amortized optimization
+  - JuMP
+  - Julia
