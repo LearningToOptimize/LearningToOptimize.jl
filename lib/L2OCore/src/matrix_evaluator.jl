@@ -54,9 +54,9 @@ order (`max` is handled through the sense). Box-like sets become row bounds
 
 All batch operations are matrix products and broadcasts, so they are
 vectorised, allocation-light and differentiable with array AD (Zygote,
-Enzyme, …) — except [`cone_violation`](@ref) and the cone part of
-[`dual_bound`](@ref), which fall back to per-column
-`MOI.Utilities.distance_to_set`.
+Enzyme, …). [`cone_violation`](@ref) and the cone part of
+[`dual_bound`](@ref) evaluate `MOI.Utilities.distance_to_set` per column
+(differentiable with Zygote for the second-order cone; not GPU-friendly).
 """
 struct MatrixEvaluator{T<:Real,M<:AbstractMatrix{T},V<:AbstractVector{T}} <:
        AbstractEvaluator
@@ -225,22 +225,30 @@ function cone_violation(ev::MatrixEvaluator, X::AbstractMatrix, P::AbstractMatri
     return _cone_distances(F, ev.cones)
 end
 
+# Non-mutating so that array AD (Zygote) can differentiate conic penalties.
 function _cone_distances(F::AbstractMatrix, blocks)
-    D = zeros(eltype(F), length(blocks), size(F, 2))
-    for k in axes(F, 2), (i, (rows, set)) in enumerate(blocks)
-        D[i, k] = MOI.Utilities.distance_to_set(collect(F[rows, k]), set)
-    end
-    return D
+    isempty(blocks) && return zeros(eltype(F), 0, size(F, 2))
+    D = [
+        MOI.Utilities.distance_to_set(F[rows, k], set) for (rows, set) in blocks,
+        k in axes(F, 2)
+    ]
+    return D::AbstractMatrix
 end
 
 equality_rows(ev::MatrixEvaluator) = ev.eq
 bound_rows(ev::MatrixEvaluator) = ev.bnd
 
+# Pseudo-inverse of sQ (minimisation form) and whether sQ ⪰ 0, computed once.
+# The quadratic dual function below is only valid for sQ ⪰ 0 (otherwise
+# inf_x L(x, y) = -∞ for every y), so non-convex objectives never claim a bound.
 function _qpinv(ev::MatrixEvaluator{T}) where {T}
     if ev.Qpinv[] === nothing
-        ev.Qpinv[] = LinearAlgebra.pinv(Matrix(ev.sense .* ev.Q))
+        Qm = LinearAlgebra.Symmetric(Matrix(ev.sense .* ev.Q))
+        λmin = LinearAlgebra.eigmin(Qm)
+        tol = sqrt(eps(T)) * max(one(T), LinearAlgebra.opnorm(Qm, 1))
+        ev.Qpinv[] = (LinearAlgebra.pinv(Matrix(Qm)), λmin >= -tol)
     end
-    return ev.Qpinv[]::Matrix{T}
+    return ev.Qpinv[]::Tuple{Matrix{T},Bool}
 end
 
 _finite(x) = ifelse(isfinite(x), x, zero(x))
@@ -264,10 +272,12 @@ function dual_bound(
         g = g .+ s .* _quadform(ev.Qpp, P) ./ 2
     end
     if SparseArrays.nnz(ev.Q) > 0
-        Qi = _qpinv(ev)
+        Qi, convex = _qpinv(ev)
         Z = Qi * R
         g = g .- vec(sum(R .* Z; dims = 1)) ./ 2
+        # r must lie in range(sQ); otherwise inf_x L = -∞.
         stat = _colmax(abs.((ev.sense .* ev.Q) * Z .- R))
+        convex || (stat = fill(convert(eltype(stat), Inf), length(stat)))
     else
         stat = _colmax(abs.(R))
     end

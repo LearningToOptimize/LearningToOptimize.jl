@@ -1,14 +1,6 @@
 using JuMP, Test, L2OCore, Random
 import HiGHS, Clarabel
 
-const _CLARABEL = optimizer_with_attributes(
-    Clarabel.Optimizer,
-    "verbose" => false,
-    "tol_gap_abs" => 1e-10,
-    "tol_gap_rel" => 1e-10,
-    "tol_feas" => 1e-10,
-)
-
 @testset "MatrixEvaluator == JuMPEvaluator on random points" begin
     rng = Random.MersenneTwister(1)
     for build in
@@ -70,6 +62,8 @@ end
         ),
         (qp_problem, _CLARABEL, BoxSampler([-1.0, -1.0], [1.0, 1.0])),
         (socp_problem, _CLARABEL, BoxSampler([0.5], [2.0])),
+        (() -> qp_problem(; sense = MOI.MAX_SENSE), _CLARABEL, BoxSampler([-1.0, -1.0], [1.0, 1.0])),
+        (singular_qp_problem, _CLARABEL, BoxSampler([0.5], [2.5])),
     )
     for (build, opt, sampler) in cases
         prob = ParametricProblem(build())
