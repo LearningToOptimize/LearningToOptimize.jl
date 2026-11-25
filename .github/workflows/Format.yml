@@ -1,0 +1,27 @@
+name: Format check
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - name: Check formatting with JuliaFormatter
+        shell: julia --color=yes {0}
+        run: |
+          using Pkg
+          Pkg.add(PackageSpec(name = "JuliaFormatter", version = "1"))
+          using JuliaFormatter
+          if !format(["src", "lib", "test", "docs"]; verbose = true, overwrite = false)
+              run(`git diff`)
+              error("Some files are not formatted; run `using JuliaFormatter; format(\".\")`.")
+          end
