@@ -17,7 +17,7 @@ minimise, over a distribution of parameters,
 where ``s = ±1`` turns maximisation into minimisation, ``ν`` are the
 element-wise constraint violations returned by
 [`L2OCore.row_violation`](@ref) (equality rows and all other rows,
-respectively, plus conic distances) and ``\\|·\\|`` is the squared 2-norm when
+respectively, plus distances to non-decomposable cones) and ``\\|·\\|`` is the squared 2-norm when
 `squared = true` and the 1-norm otherwise. With `squared = true` this is the
 soft loss of eq. (2) in Donti, Rolnick & Kolter, "DC3: A learning method for
 optimization with hard constraints" (ICLR 2021, arXiv:2104.12225), with
@@ -48,6 +48,27 @@ end
 L2OCore.supports(::PenaltyMethod, ::L2OCore.LinearConic) = true
 L2OCore.supports(::PenaltyMethod, ::L2OCore.ConvexQuadratic) = true
 L2OCore.guarantees(::PenaltyMethod) = (L2OCore.NoGuarantee(),)
+
+# The loss is differentiated through the matrix-form evaluator; problems the
+# matrix form cannot represent (e.g. parameter × variable products in
+# constraints) are rejected when the pipeline is built, with a clear message,
+# instead of failing inside automatic differentiation.
+function L2OCore.decompose(problem, m::PenaltyMethod)
+    L2OCore.has_matrix_form(problem) || throw(
+        ArgumentError(
+            "PenaltyMethod differentiates its loss through MatrixEvaluator, which needs " *
+            "affine constraints with parameters only in the constants and an at most " *
+            "quadratic objective. This problem has no such form; a kernel-based " *
+            "evaluator is needed (planned).",
+        ),
+    )
+    return invoke(
+        L2OCore.decompose,
+        Tuple{Any,L2OCore.AbstractL2OMethod},
+        problem,
+        m,
+    )
+end
 
 """
     generate_data(::PenaltyMethod, pipe; sampler, n, rng, optimizer = nothing)
@@ -84,10 +105,11 @@ function L2OCore.loss(m::PenaltyMethod, pipe, inputs, output; kwargs...)
     pen =
         m.ρ_eq * _penalty_norm(V .* eq, m.squared) +
         m.ρ_ineq * _penalty_norm(V .* .!eq, m.squared)
-    C = Zygote.ignore(() -> L2OCore.cone_violation(ev, X, inputs))
-    if size(C, 1) > 0
-        # Conic distances are evaluated per column and not differentiated here.
-        pen += m.ρ_ineq * _penalty_norm(C, m.squared)
+    has_cones = Zygote.ignore(() -> !isempty(ev.cones))
+    if has_cones
+        # Distances to non-decomposable cones (e.g. second-order cones) are
+        # inequality constraints g(x) ∈ K: penalised with ρ_ineq like ReLU(g).
+        pen += m.ρ_ineq * _penalty_norm(L2OCore.cone_violation(ev, X, inputs), m.squared)
     end
     return (obj + pen) / B
 end

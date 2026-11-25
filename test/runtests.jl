@@ -31,7 +31,7 @@ include(joinpath(test_dir, "inconvexhull.jl"))
 include(joinpath(test_dir, "samplers.jl"))
 
 include(joinpath(test_dir, "penalty.jl"))
-using .PenaltyTests: test_penalty_method
+using .PenaltyTests: test_penalty_method, test_penalty_audit
 
 @testset "LearningToOptimize.jl" begin
     test_load_parameters_model()
@@ -43,6 +43,7 @@ using .PenaltyTests: test_penalty_method
     test_flux_jump_basic()
     test_inconvexhull()
     test_penalty_method()
+    test_penalty_audit()
 
     mktempdir() do path
         test_compress_batch_arrow(path)

@@ -5,7 +5,7 @@ module PenaltyTests
 using Test, JuMP, Random, Flux, HiGHS
 using LearningToOptimize
 
-export test_penalty_method
+export test_penalty_method, test_penalty_audit
 
 function penalty_test_lp()
     model = Model()
@@ -70,6 +70,70 @@ function test_penalty_method()
         rep = evaluate(pipe, ref.inputs, pred)
         @test sum(abs.(rep.objective .- ref.objective)) / 16 < 0.5
         @test check(NoGuarantee(), prob, ref.inputs, pred).passed
+    end
+end
+
+
+function test_penalty_audit()
+    @testset "PenaltyMethod: audit checks" begin
+        rng = Random.MersenneTwister(43)
+        prob = ParametricProblem(penalty_test_lp())
+        λh, λg = 3.0, 5.0
+        pipe = L2OPipeline(prob, PenaltyMethod(; ρ_eq = λh, ρ_ineq = λg))
+        # Claim `PenaltyLossMatchesDC3Eq2`: the loss equals eq. (2) of DC3,
+        # f + λ_h‖h‖² + λ_g‖ReLU(g)‖², averaged over the batch, written out by
+        # hand for this LP (h: two balances, g: 0 ≤ x ≤ 4 as -x ≤ 0, x - 4 ≤ 0).
+        X = 6 .* rand(rng, 3, 5) .- 1
+        P = rand(rng, 2, 5) .+ 0.5
+        relu(v) = max.(v, 0)
+        manual = sum(1:5) do k
+            x, d = X[:, k], P[:, k]
+            f = x[1] + 3x[2] + 2x[3]
+            h = [x[1] + x[2] - d[1], x[3] - d[2]]
+            g = vcat(-x, x .- 4)
+            f + λh * sum(abs2, h) + λg * sum(abs2, relu(g))
+        end / 5
+        @test loss(pipe, P, X) ≈ manual
+
+        # Maximisation: the loss minimises -f (claim `PenaltyLossAtOptimum`).
+        mmax = Model()
+        @variable(mmax, d in MOI.Parameter(1.0))
+        @variable(mmax, 0 <= x <= 2)
+        @constraint(mmax, x <= d)
+        @objective(mmax, Max, 2x)
+        pmax = L2OPipeline(ParametricProblem(mmax), PenaltyMethod())
+        Pm = reshape([0.5, 1.5], 1, 2)
+        @test loss(pmax, Pm, Pm) ≈ -sum(2 .* Pm) / 2   # x* = d is feasible
+
+        # Claim `PenaltyLossGradient` with a second-order cone (conic distances
+        # are differentiated too).
+        msoc = Model()
+        @variable(msoc, p in MOI.Parameter(1.0))
+        @variable(msoc, t)
+        @variable(msoc, y[1:2])
+        @constraint(msoc, y[1] + y[2] == p)
+        @constraint(msoc, [t; y] in SecondOrderCone())
+        @objective(msoc, Min, t)
+        psoc = L2OPipeline(ParametricProblem(msoc), PenaltyMethod())
+        X0 = [0.1 0.2 -0.3; 1.0 0.4 0.9; -0.5 0.8 0.3]   # infeasible: cone active
+        P0 = [1.0 0.5 2.0]
+        fs(Z) = loss(psoc, P0, Z)
+        G = Flux.gradient(fs, X0)[1]
+        h = 1e-6
+        Gfd = map(CartesianIndices(X0)) do I
+            E = zero(X0)
+            E[I] = h
+            (fs(X0 .+ E) - fs(X0 .- E)) / 2h
+        end
+        @test G ≈ Gfd rtol = 1e-5 atol = 1e-7
+
+        # Problems without a matrix form are rejected when the pipeline is built.
+        mbad = Model()
+        @variable(mbad, q in MOI.Parameter(1.0))
+        @variable(mbad, z >= 0)
+        @constraint(mbad, q * z >= 1)
+        @objective(mbad, Min, z)
+        @test_throws ArgumentError L2OPipeline(ParametricProblem(mbad), PenaltyMethod())
     end
 end
 
