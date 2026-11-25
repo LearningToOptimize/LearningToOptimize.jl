@@ -20,7 +20,6 @@ end
     @test err isa UnsupportedProblemError
     msg = sprint(showerror, err)
     @test occursin("Unsupported", msg) && occursin("LinearConic", msg)
-    @test guarantees(ToyPrimal()) == (NoGuarantee(),)
     @test method_family(ToyPrimal()) == PrimalFamily()
     @test method_family(ToyDual()) == DualFamily()
     @test method_family(ToyPrimalDual()) == PrimalDualFamily()
@@ -102,7 +101,6 @@ L2OCore.extra_loss(w::AddConstant, pipe, inputs, output; proxy = nothing, kwargs
     w = AddConstant(ToyPrimal(), 2.0)
     @test inner_method(w) === w.inner
     @test supports(w, LinearConic()) && method_family(w) == PrimalFamily()
-    @test guarantees(w) == guarantees(ToyPrimal())
     pipe = L2OPipeline(prob, w)
     @test pipe.decomposition == decompose(prob, ToyPrimal())
     ds = generate_data(
@@ -158,7 +156,6 @@ end
     prob = ParametricProblem(qp_problem())
     m = SupervisedMSE()
     @test supports(m, ConvexQuadratic()) && supports(m, SmoothNonlinear())
-    @test guarantees(m) == (NoGuarantee(),)
     pipe = L2OPipeline(prob, m)
     @test output_dimension(pipe) == num_decision_variables(prob)
     ds = generate_data(

@@ -5,11 +5,11 @@ Lightweight interfaces shared by every Learning-to-Optimize (L2O) method in the
 LearningToOptimize ecosystem.
 
 `L2OCore` defines *what* an L2O method is (a type in a small hierarchy), *which
-problems* it accepts ([`supports`](@ref)), *what it promises* about its
-predictions ([`guarantees`](@ref)) and the method-dispatched pipeline
+problems* it accepts ([`supports`](@ref)), how its predictions are evaluated
+([`evaluate`](@ref)) and the method-dispatched pipeline
 
 ```
-ParametricProblem ─ decompose ─ generate_data ─ (train proxy) ─ complete ─ evaluate/check
+ParametricProblem ─ decompose ─ generate_data ─ (train proxy) ─ complete ─ evaluate
 ```
 
 with sane fallbacks for each method family. It depends only on JuMP,
@@ -39,7 +39,7 @@ include("problem.jl")
 include("evaluators.jl")
 include("matrix_evaluator.jl")
 include("jump_evaluator.jl")
-include("guarantees.jl")
+include("support.jl")
 include("data.jl")
 include("pipeline.jl")
 include("supervised.jl")
@@ -88,19 +88,8 @@ export AbstractEvaluator,
     dual_bound,
     EvaluationReport,
     evaluate
-# Assumptions and guarantees
-export AbstractGuarantee,
-    NoGuarantee,
-    Feasible,
-    EqualityFeasible,
-    BoundFeasible,
-    ValidDualBound,
-    CheckResult,
-    supports,
-    check_supports,
-    UnsupportedProblemError,
-    guarantees,
-    check
+# Supported problem classes
+export supports, check_supports, UnsupportedProblemError
 # Data
 export AbstractParameterSampler,
     BoxSampler,

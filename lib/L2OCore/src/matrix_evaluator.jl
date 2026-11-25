@@ -240,7 +240,7 @@ bound_rows(ev::MatrixEvaluator) = ev.bnd
 
 # Pseudo-inverse of sQ (minimisation form) and whether sQ ⪰ 0, computed once.
 # The quadratic dual function below is only valid for sQ ⪰ 0 (otherwise
-# inf_x L(x, y) = -∞ for every y), so non-convex objectives never claim a bound.
+# inf_x L(x, y) = -∞ for every y), so non-convex objectives never get a bound.
 function _qpinv(ev::MatrixEvaluator{T}) where {T}
     if ev.Qpinv[] === nothing
         Qm = LinearAlgebra.Symmetric(Matrix(ev.sense .* ev.Q))

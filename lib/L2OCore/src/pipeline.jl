@@ -161,8 +161,8 @@ end
     complete(method, pipe, inputs, output)  # extension point
 
 Turn the raw proxy `output` (`output_dimension × B`) into a
-[`Prediction`](@ref) for which the method's [`guarantees`](@ref) hold
-(projection, equality completion, dual completion, repair…). The
+[`Prediction`](@ref) in the method's own sense (projection, equality
+completion, dual completion, repair…). The
 `FullSpaceDecomposition` fallback only splits the output into primal and dual
 blocks.
 
@@ -234,7 +234,7 @@ LearningToOptimize.jl for Flux) and method packages add methods.
 function train_proxy! end
 
 """
-    evaluate(pipe::L2OPipeline, inputs, prediction; atol = 1e-6, reference = nothing)
+    evaluate(pipe::L2OPipeline, inputs, prediction; atol = 1e-6)
     evaluate(problem::ParametricProblem, inputs, prediction;
              evaluator = default_evaluator(problem), atol = 1e-6)
 
@@ -286,7 +286,7 @@ or extra regularisers. A wrapper must implement
 
 Leave the `pipe`, `inputs` and `output` arguments untyped (or typed no more
 narrowly than the fallbacks) to avoid method ambiguities. Everything else
-(family, [`supports`](@ref), [`guarantees`](@ref),
+(family, [`supports`](@ref),
 [`decompose`](@ref), [`generate_data`](@ref), [`complete`](@ref)) is forwarded
 to the inner method, and [`loss`](@ref) is `loss(inner) + extra_loss(wrapper)`.
 A wrapper may override any of them, e.g. `generate_data` to attach derivative
@@ -313,7 +313,6 @@ end
 
 method_family(w::AbstractMethodWrapper) = method_family(inner_method(w))
 supports(w::AbstractMethodWrapper, c::AbstractProblemClass) = supports(inner_method(w), c)
-guarantees(w::AbstractMethodWrapper) = guarantees(inner_method(w))
 decompose(problem, w::AbstractMethodWrapper) = decompose(problem, inner_method(w))
 generate_data(w::AbstractMethodWrapper, p; kwargs...) =
     generate_data(inner_method(w), p; kwargs...)

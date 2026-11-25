@@ -108,17 +108,3 @@ complete
 loss
 train_proxy!
 ```
-
-## Other exported names
-
-```@docs
-guarantees
-AbstractGuarantee
-NoGuarantee
-Feasible
-EqualityFeasible
-BoundFeasible
-ValidDualBound
-check
-CheckResult
-```

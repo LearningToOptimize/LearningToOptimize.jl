@@ -25,13 +25,13 @@ optimization with hard constraints" (ICLR 2021, arXiv:2104.12225), with
 bounds) are penalised through ``\\max(l - f, 0) + \\max(f - u, 0)``, which is
 the ``\\mathrm{ReLU}(g)`` of eq. (2) for each side.
 
-**Assumptions:** problem class [`LinearConic`](@ref) or
-[`ConvexQuadratic`](@ref) (so the default `MatrixEvaluator` is used and the
-loss is differentiable with array AD). No solver is needed for training.
+The method supports the problem classes [`LinearConic`](@ref) and
+[`ConvexQuadratic`](@ref), so the default `MatrixEvaluator` is used and the
+loss is differentiable with array AD. No solver is needed for training.
 
-**Guarantees:** none ([`NoGuarantee`](@ref)). Penalty proxies are in general
-*infeasible*; pair them with a completion/repair method when feasibility is
-required.
+Penalty proxies are in general *infeasible*; pair them with a completion or
+repair method when feasibility is required, and measure their violations with
+[`evaluate`](@ref).
 """
 struct PenaltyMethod{T<:Real} <: L2OCore.AbstractPrimalMethod
     ρ_eq::T
@@ -47,7 +47,6 @@ end
 
 L2OCore.supports(::PenaltyMethod, ::L2OCore.LinearConic) = true
 L2OCore.supports(::PenaltyMethod, ::L2OCore.ConvexQuadratic) = true
-L2OCore.guarantees(::PenaltyMethod) = (L2OCore.NoGuarantee(),)
 
 # The loss is differentiated through the matrix-form evaluator; problems the
 # matrix form cannot represent (e.g. parameter × variable products in
@@ -70,7 +69,7 @@ end
 
 Penalty training is self-supervised: only parameters are sampled. When an
 `optimizer` is given, instances are also solved so that the dataset carries
-reference optima for evaluation (gaps, [`ValidDualBound`](@ref) checks).
+reference optima for evaluation (objective gaps, dual bounds).
 """
 function L2OCore.generate_data(
     ::PenaltyMethod,

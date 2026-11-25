@@ -89,16 +89,15 @@ function bound_rows end
 Value of the Lagrangian dual function at each column of `Y` (signs as returned
 by `JuMP.dual`) and the dual infeasibility of that column.
 
-Guarantee (weak duality, named `ValidDualBound`): whenever
-`infeasibility[k] ≤ atol`, `bound[k]` is a valid lower bound (upper bound for
-maximisation) on the optimal value of instance `k`, up to
-`infeasibility[k] * ‖x⋆‖₁` when the stationarity residual is nonzero (see
+By weak duality, whenever `infeasibility[k] ≤ atol`, `bound[k]` is a lower
+bound (upper bound for maximization) on the optimal value of instance `k`, up
+to `infeasibility[k] * ‖x⋆‖₁` when the stationarity residual is nonzero (see
 the Theory page). Columns that are not dual feasible get `bound = -Inf`
-(`+Inf` for maximisation).
+(`+Inf` for maximization).
 
-Assumptions: signs as returned by `JuMP.dual` (MathOptInterface convention);
-for quadratic objectives `sQ ⪰ 0` is required and verified — otherwise no
-bound is claimed.
+Dual signs follow `JuMP.dual` (the MathOptInterface convention). For
+quadratic objectives `sQ ⪰ 0` is required and verified; otherwise no bound is
+returned.
 """
 function dual_bound end
 

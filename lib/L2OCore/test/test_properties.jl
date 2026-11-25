@@ -1,54 +1,65 @@
 using JuMP, Test, L2OCore, Random
 import HiGHS
 
-@testset "guarantee checks" begin
+# Largest violation per instance over the rows selected by `rows` (all rows
+# and cones when `rows === nothing`).
+function _maxviol(prob, P, X; rows = nothing)
+    ev = default_evaluator(prob)
+    rows === nothing && return evaluate(prob, P, Prediction(primal = X)).max_violation
+    return vec(maximum(row_violation(ev, X, P)[rows(ev), :]; dims = 1))
+end
+
+# Whether every column of `Y` is dual feasible and its dual bound is on the
+# correct side of the optimal value `opt` (≤ for minimization, ≥ for
+# maximization), up to `atol` relative to max(1, |opt|).
+function _bounds_optimum(prob, P, Y, opt; atol = 1e-6)
+    bound, infeas = dual_bound(default_evaluator(prob), Y, P; atol)
+    s = objective_sign(prob)
+    excess = max.(s .* (bound .- opt), 0) ./ max.(1, abs.(opt))
+    return all(infeas .<= atol) && all(excess .<= atol)
+end
+
+@testset "solver optima are feasible and their duals bound the optimum" begin
     rng = Random.MersenneTwister(3)
     prob = ParametricProblem(lp_problem())
     sampler = BoxSampler([0.5, 1.0], [1.5, 3.0])
     P = sample_parameters(sampler, rng, 8)
     ds = solve_instances(prob, P; optimizer = HiGHS.Optimizer, dual = true)
-    opt = Prediction(ds.primal, ds.dual)
 
-    @test check(NoGuarantee(), prob, P, opt).passed
-    @test check(Feasible(), prob, P, opt).passed
-    @test check(EqualityFeasible(), prob, P, opt).passed
-    @test check(BoundFeasible(), prob, P, opt).passed
-    r = check(ValidDualBound(), prob, P, opt; reference = ds.objective)
-    @test r.passed
-    @test occursin("ValidDualBound: passed", sprint(show, r))
-    @test_throws ArgumentError check(ValidDualBound(), prob, P, opt)
-    @test_throws ArgumentError check(Feasible(), prob, P, Prediction(dual = ds.dual))
+    @test all(_maxviol(prob, P, ds.primal) .<= 1e-6)
+    @test all(_maxviol(prob, P, ds.primal; rows = equality_rows) .<= 1e-6)
+    @test all(_maxviol(prob, P, ds.primal; rows = L2OCore.bound_rows) .<= 1e-6)
+    @test _bounds_optimum(prob, P, ds.dual, ds.objective)
 
     # Weak duality on random instances: in this LP the parameters only enter
     # the right-hand side, so the optimal duals of instance j are dual feasible
     # for every instance k and must give a bound ≤ OPT(k).
-    shuffled = Prediction(dual = ds.dual[:, circshift(1:8, 3)])
-    r = check(ValidDualBound(), prob, P, shuffled; reference = ds.objective)
-    @test r.passed
-    bound, _ = dual_bound(default_evaluator(prob), shuffled.dual, P)
+    shuffled = ds.dual[:, circshift(1:8, 3)]
+    @test _bounds_optimum(prob, P, shuffled, ds.objective)
+    bound, _ = dual_bound(default_evaluator(prob), shuffled, P)
     @test all(bound .<= ds.objective .+ 1e-8)
 
-    # Same claim for maximisation (bound ≥ OPT).
+    # The same for maximization (bound ≥ OPT).
     pmax = ParametricProblem(lp_problem(; sense = MOI.MAX_SENSE))
     dsm = solve_instances(pmax, P; optimizer = HiGHS.Optimizer, dual = true)
     bm, _ = dual_bound(default_evaluator(pmax), dsm.dual[:, circshift(1:8, 3)], P)
     @test all(bm .>= dsm.objective .- 1e-8)
 
-    # Random duals are (almost surely) dual infeasible: no bound is claimed.
+    # Random duals are (almost surely) dual infeasible: no bound is returned.
     Yr = randn(rng, num_duals(prob), 8)
     bound, infeas = dual_bound(default_evaluator(prob), Yr, P)
     @test all(infeas .> 1e-6)
     @test all(==(-Inf), bound)
-    @test !check(ValidDualBound(), prob, P, Prediction(dual = Yr); reference = ds.objective).passed
+    @test !_bounds_optimum(prob, P, Yr, ds.objective)
 
-    # Perturbed primal violates equalities.
+    # A perturbed primal violates the equalities, then the bounds.
     Xbad = ds.primal .+ 0.1
-    @test !check(EqualityFeasible(), prob, P, Prediction(primal = Xbad)).passed
-    @test !check(Feasible(), prob, P, Prediction(primal = Xbad .+ 10)).passed
-    @test !check(BoundFeasible(), prob, P, Prediction(primal = Xbad .+ 10)).passed
+    @test maximum(_maxviol(prob, P, Xbad; rows = equality_rows)) > 1e-6
+    @test maximum(_maxviol(prob, P, Xbad .+ 10)) > 1e-6
+    @test maximum(_maxviol(prob, P, Xbad .+ 10; rows = L2OCore.bound_rows)) > 1e-6
 end
 
-# Claim `ValidDualBound` for a strictly convex QP: with sQ ≻ 0 every y with the
+# Weak duality for a strictly convex QP: with sQ ≻ 0 every y with the
 # right signs is dual feasible (r ∈ range(sQ) always), so *random* sign-feasible
 # duals must give bounds ≤ OPT. Weak duality, no solver duals involved.
 @testset "weak duality on a strictly convex QP with random duals" begin
@@ -65,17 +76,11 @@ end
         @test all(infeas .<= 1e-8)
         s = objective_sign(prob)
         @test all(s .* bound .<= s .* ds.objective .+ 1e-6)
-        @test check(
-            ValidDualBound(),
-            prob,
-            P,
-            Prediction(dual = Y);
-            reference = ds.objective,
-        ).passed
+        @test _bounds_optimum(prob, P, Y, ds.objective)
     end
 end
 
-# A non-convex objective mislabelled as ConvexQuadratic must never claim a bound
+# A non-convex objective mislabeled as ConvexQuadratic must never give a bound
 # (inf_x L(x, y) = -∞ for every y).
 @testset "no dual bound for a non-convex quadratic objective" begin
     m = Model()
@@ -90,7 +95,7 @@ end
     @test all(isinf, infeas)
 end
 
-# Claim `DLLBoundedCompletionValid`: Theorem 1 / Example 1 of Tanneau & Van
+# Dual completion for bounded variables, Theorem 1 / Example 1 of Tanneau & Van
 # Hentenryck (2024, arXiv:2402.03086). With finite bounds l ≤ x ≤ u, any y for
 # the other constraints (in their dual cones) is completed by
 # z_l = max(r, 0), z_u = min(r, 0), r = c - Aᵀy (MOI signs), giving a dual
@@ -117,7 +122,7 @@ end
     yrand[ev.upper[.!bnd] .== Inf, :] .= abs.(yrand[ev.upper[.!bnd] .== Inf, :])
     yrand[ev.lower[.!bnd] .== -Inf, :] .= .-abs.(yrand[ev.lower[.!bnd] .== -Inf, :])
     Y = reduce(hcat, complete_dll(yrand[:, k]) for k = 1:10)
-    @test check(ValidDualBound(), prob, P, Prediction(dual = Y); reference = ds.objective).passed
+    @test _bounds_optimum(prob, P, Y, ds.objective)
     # optimal y recovers the optimal value (strongest bound, Theorem 2)
     Ystar = reduce(hcat, complete_dll(ds.dual[.!bnd, k]) for k = 1:10)
     bound, infeas = dual_bound(ev, Ystar, P)

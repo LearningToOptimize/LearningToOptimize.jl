@@ -49,7 +49,7 @@ end
     @test_throws ArgumentError dual_bound(ev, zeros(1, 2), P)
 end
 
-# Guarantee `StrongDualityAtOptimum` (LP/QP, Slater holds): the dual bound of the
+# Strong duality at the optimum (LP/QP, Slater holds): the dual bound of the
 # solver's optimal duals equals the solver's optimal value.
 @testset "solver optimum: feasibility and strong duality" begin
     rng = Random.MersenneTwister(2)

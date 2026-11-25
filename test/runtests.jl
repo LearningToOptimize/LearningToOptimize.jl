@@ -9,7 +9,6 @@ using Test
 using UUIDs
 using Ipopt
 using MLJFlux
-using Flux
 using MLJ
 using CSV
 using DataFrames
@@ -31,7 +30,7 @@ include(joinpath(test_dir, "inconvexhull.jl"))
 include(joinpath(test_dir, "samplers.jl"))
 
 include(joinpath(test_dir, "penalty.jl"))
-using .PenaltyTests: test_penalty_method, test_penalty_audit
+using .PenaltyTests: test_penalty_method, test_penalty_loss_definition
 
 @testset "LearningToOptimize.jl" begin
     test_load_parameters_model()
@@ -43,7 +42,7 @@ using .PenaltyTests: test_penalty_method, test_penalty_audit
     test_flux_jump_basic()
     test_inconvexhull()
     test_penalty_method()
-    test_penalty_audit()
+    test_penalty_loss_definition()
 
     mktempdir() do path
         test_compress_batch_arrow(path)

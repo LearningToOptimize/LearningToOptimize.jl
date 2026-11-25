@@ -17,7 +17,6 @@ struct MyMethod <: L2OCore.AbstractPrimalMethod
     ρ::Float64
 end
 L2OCore.supports(::MyMethod, ::L2OCore.LinearConic) = true
-L2OCore.guarantees(::MyMethod) = (L2OCore.EqualityFeasible(),)
 ```
 
 and overrides only the pipeline steps that differ from the family fallback.
@@ -36,7 +35,8 @@ abstract type AbstractPrimalMethod <: AbstractL2OMethod end
     AbstractDualMethod <: AbstractL2OMethod
 
 Methods whose proxy predicts (a subset of) the dual variables, e.g. Dual
-Lagrangian Learning (DLL). Their typical guarantee is [`ValidDualBound`](@ref).
+Lagrangian Learning (DLL). A dual feasible prediction gives a valid bound on
+the optimal value through [`dual_bound`](@ref).
 """
 abstract type AbstractDualMethod <: AbstractL2OMethod end
 

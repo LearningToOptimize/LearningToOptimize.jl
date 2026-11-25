@@ -5,7 +5,7 @@ module PenaltyTests
 using Test, JuMP, Random, Flux, HiGHS
 using LearningToOptimize
 
-export test_penalty_method, test_penalty_audit
+export test_penalty_method, test_penalty_loss_definition
 
 function penalty_test_lp()
     model = Model()
@@ -23,7 +23,6 @@ function test_penalty_method()
         prob = ParametricProblem(penalty_test_lp())
         m = PenaltyMethod(; ρ_eq = 20.0, ρ_ineq = 20.0)
         @test_throws ArgumentError PenaltyMethod(; ρ_eq = -1.0)
-        @test guarantees(m) == (NoGuarantee(),)
         @test supports(m, LinearConic()) && supports(m, ConvexQuadratic())
         @test !supports(m, SmoothNonlinear())
         pipe = L2OPipeline(prob, m)
@@ -33,11 +32,11 @@ function test_penalty_method()
         ref = generate_data(pipe; sampler, n = 16, rng, optimizer = HiGHS.Optimizer)
         @test all(==(MOI.OPTIMAL), ref.status)
 
-        # Claim `PenaltyLossAtOptimum`: at a solver optimum the penalty term
+        # At a solver optimum the penalty term
         # vanishes and the loss equals the mean optimal objective.
         @test loss(pipe, ref.inputs, ref.primal) ≈ sum(ref.objective) / 16 atol = 1e-6
 
-        # Claim `PenaltyLossGradient`: Zygote gradient == central finite differences.
+        # The Zygote gradient matches central finite differences.
         X0 = ref.primal .+ 0.3 .* randn(rng, size(ref.primal))
         P0 = ref.inputs
         f(X) = loss(pipe, P0, X)
@@ -69,18 +68,17 @@ function test_penalty_method()
         pred = complete(pipe, ref.inputs, model(ref.inputs))
         rep = evaluate(pipe, ref.inputs, pred)
         @test sum(abs.(rep.objective .- ref.objective)) / 16 < 0.5
-        @test check(NoGuarantee(), prob, ref.inputs, pred).passed
     end
 end
 
 
-function test_penalty_audit()
-    @testset "PenaltyMethod: audit checks" begin
+function test_penalty_loss_definition()
+    @testset "PenaltyMethod: loss definition and gradients" begin
         rng = Random.MersenneTwister(43)
         prob = ParametricProblem(penalty_test_lp())
         λh, λg = 3.0, 5.0
         pipe = L2OPipeline(prob, PenaltyMethod(; ρ_eq = λh, ρ_ineq = λg))
-        # Claim `PenaltyLossMatchesDC3Eq2`: the loss equals eq. (2) of DC3,
+        # The loss equals eq. (2) of DC3,
         # f + λ_h‖h‖² + λ_g‖ReLU(g)‖², averaged over the batch, written out by
         # hand for this LP (h: two balances, g: 0 ≤ x ≤ 4 as -x ≤ 0, x - 4 ≤ 0).
         X = 6 .* rand(rng, 3, 5) .- 1
@@ -95,7 +93,7 @@ function test_penalty_audit()
         end / 5
         @test loss(pipe, P, X) ≈ manual
 
-        # Maximisation: the loss minimises -f (claim `PenaltyLossAtOptimum`).
+        # Maximization: the loss minimizes -f.
         mmax = Model()
         @variable(mmax, d in MOI.Parameter(1.0))
         @variable(mmax, 0 <= x <= 2)
@@ -105,8 +103,8 @@ function test_penalty_audit()
         Pm = reshape([0.5, 1.5], 1, 2)
         @test loss(pmax, Pm, Pm) ≈ -sum(2 .* Pm) / 2   # x* = d is feasible
 
-        # Claim `PenaltyLossGradient` with a second-order cone (conic distances
-        # are differentiated too).
+        # The gradient check with a second-order cone (conic distances are
+        # differentiated too).
         msoc = Model()
         @variable(msoc, p in MOI.Parameter(1.0))
         @variable(msoc, t)
