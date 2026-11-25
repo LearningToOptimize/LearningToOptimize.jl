@@ -268,21 +268,25 @@ respect to the weights. We measured which combinations give correct gradients
 Measured with Lux 1.32, Flux 0.16, Zygote 0.7, ForwardDiff 1.5 and a recent
 Enzyme on a `Dense(3→8, tanh) → Dense(8→2)` network with Float64 weights
 (Float32 weights make the finite-difference reference unreliable);
-reproduce with `julia dev/nested_ad_matrix.jl`. Small dense networks do not
-show every failure seen with larger Flux models in the past, so this table is
-evidence for the configurations listed, not a general statement.
+reproduce with `julia dev/nested_ad_matrix.jl`. The table is evidence for
+the configurations listed, not a general statement; method packages test each
+framework on the models they ship examples for.
 
 Decision:
 
 - method packages must work with **any callable proxy**; `L2OCore` never
   differentiates through the proxy itself;
-- **Lux is the tested path for losses that need nested AD**, through its
-  dedicated `vector_jacobian_product` / `jacobian_vector_product` helpers under
-  Zygote, which Lux maintains for exactly this use and which also work on
-  GPUs; derivative-supervision code should call these rather than nesting
-  `Zygote.gradient` by hand;
-- the Flux loop in the main package (`train_flux!`) is supported for
-  first-order losses (penalty, supervised, augmented-Lagrangian losses);
+- **Lux and Flux are both supported for losses that need nested AD**, each in
+  the configurations the tests show to be correct:
+  - Lux through its `vector_jacobian_product` / `jacobian_vector_product`
+    helpers under an outer Zygote gradient (Lux maintains these for exactly
+    this use, and they also work on GPUs); nesting `Zygote.gradient` by hand
+    inside a Lux loss fails, so derivative-supervision code calls the helpers;
+  - Flux (a `Chain`, or any Zygote-differentiable callable) with Zygote both
+    inside the loss and for the outer gradient with respect to the weights;
+- the Flux loop in the main package (`train_flux!`) covers first-order losses
+  (penalty, supervised, augmented-Lagrangian losses); a method package that
+  needs derivative supervision provides its own loss for either framework;
 - never put `ForwardDiff` inside a Zygote-differentiated loss for
   parameter gradients: Zygote treats the inner call as constant and returns
   `nothing` without an error.
