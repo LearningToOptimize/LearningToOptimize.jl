@@ -58,26 +58,46 @@ per-instance `JuMPEvaluator`.
 ## Lagrangian dual bound
 
 Dual variables follow the MathOptInterface convention returned by
-`JuMP.dual`: ``y_k \in \mathcal{K}_k^*`` (the dual cone) for conic blocks; for
-a box row, ``y_r \ge 0`` if only the lower side is finite, ``y_r \le 0`` if
-only the upper side is finite, free otherwise. In minimisation form
-(objective ``s f``), the Lagrangian is
+`JuMP.dual` (MOI documentation, "Duality"): for
+``\min a_0^\top x + b_0`` s.t. ``A_i x + b_i \in \mathcal{C}_i`` the dual is
+``\max -\sum_i b_i^\top y_i + b_0`` s.t. ``a_0 - \sum_i A_i^\top y_i = 0``,
+``y_i \in \mathcal{C}_i^*``; for maximisation the dual is
+``\min \sum_i b_i^\top y_i + b_0`` s.t. ``a_0 + \sum_i A_i^\top y_i = 0``,
+with the *same* cones. Hence the signs of the duals depend only on the sets,
+not on the objective sense: ``y_k \in \mathcal{K}_k^*`` for conic blocks, and
+for a box row ``y_r \ge 0`` if only the lower side is finite, ``y_r \le 0`` if
+only the upper side is finite, free otherwise. An `Interval` row (not a cone)
+is treated as the pair ``f \ge l`` (multiplier ``\max(y_r,0)``) and
+``f \le u`` (multiplier ``\min(y_r,0)``), which is the sign convention solvers
+report for its `ConstraintDual`; this is checked numerically (strong duality
+on a QP with an `Interval` row). Writing ``f_r = a_r^\top x + b_r^\top p +
+b^0_r`` for the function value of row ``r`` (all rows, box and conic), the
+Lagrangian of the minimisation form (objective ``s f``) is
 
 ```math
-L(x, y; p) = s f(x; p) - \sum_r y_r\, (a_r^\top x + b_r^\top p + b_r^0)
-  + \sum_{r \in \text{box}} \big(\max(y_r, 0)\, l_r + \min(y_r, 0)\, u_r\big)
-  - \sum_k y_k^\top (A_k x + B_k p + b_k),
+L(x, y; p) = s f(x; p) - \sum_{r} y_r\, f_r
+  + \sum_{r \in \text{box}} \big(\max(y_r, 0)\, l_r + \min(y_r, 0)\, u_r\big).
 \tag{T4}
 ```
+
+For a box row the last two terms equal ``-\max(y_r,0)(f_r - l_r) -
+\min(y_r,0)(f_r - u_r)``; for a conic block they reduce to ``-y_k^\top f_k``.
+For maximisation, ``-L`` is exactly the MOI Lagrangian ``f + \sum_i y_i^\top
+(A_i x + b_i)``, which is why the minimisation form uses the same ``y``.
 
 and the dual function is ``d(y; p) = \inf_x L(x, y; p)``. With
 ``r(y; p) = s(c + H p) - A^\top y``:
 
-- if ``Q = 0`` (LP/conic): ``d(y;p) = s(c_p^\top p + c_0) - y^\top(Bp + b)
+- if ``Q = 0`` (LP/conic; this is the MOI dual objective above): ``d(y;p) = s(c_p^\top p + c_0) - y^\top(Bp + b)
   + \text{box terms}`` when ``r(y;p) = 0``, and ``-\infty`` otherwise;
 - if ``sQ \succeq 0``: ``d(y;p) = s(c_p^\top p + c_0) - y^\top(Bp + b)
   + \text{box terms} - \tfrac12 r^\top (sQ)^{+} r`` when ``r \in
-  \operatorname{range}(sQ)``, and ``-\infty`` otherwise.
+  \operatorname{range}(sQ)``, and ``-\infty`` otherwise (for invertible ``Q``
+  this is the MOI dual of a QP, ``-\tfrac12 z^\top Q^{-1} z + b_0 - \sum_i
+  y_i^\top b_i`` with ``z = -r``);
+- if ``sQ`` is not positive semidefinite, ``d(y; p) = -\infty`` for every
+  ``y``: no bound is claimed, even when the class was declared
+  `ConvexQuadratic` by hand.
 
 `dual_bound(evaluator, Y, P)` returns ``s\, d(y;p)`` together with the dual
 infeasibility (largest of the stationarity residual, sign violations and
@@ -90,12 +110,39 @@ is ``\le \mathrm{OPT}(p)`` for minimisation and ``\ge`` for maximisation. No
 convexity is needed: for any feasible ``x``, every subtracted term in (T4) is
 ``\ge 0`` by the sign conventions, so ``L(x,y;p) \le s f(x;p)``. Tested on
 random instances by evaluating the optimal duals of one instance at other
-instances (dual feasibility does not depend on right-hand-side parameters).
+instances (dual feasibility does not depend on right-hand-side parameters),
+and on a strictly convex QP with random sign-feasible duals (every such ``y``
+is dual feasible because ``\operatorname{range}(sQ)`` is everything).
 
-**StrongDualityAtOptimum**. *Assumptions:* convex class and a constraint
-qualification (Slater). *Claim:* at a primal-dual optimal pair returned by a
-solver, the bound equals the optimal value (to solver tolerance). Tested on
-LP (min and max), convex QP and SOCP instances.
+*Tolerance.* Numerically, ``r`` is accepted when ``\|r\|_\infty \le``
+`atol` (or the range residual is). The bound then holds up to the residual:
+since ``L`` is affine in ``x`` along the residual, ``d(y;p) \le
+s\,\mathrm{OPT}(p) + \|r\|_\infty \|x^\star\|_1`` for any optimal
+``x^\star``. Methods that need exact bounds (DLL) complete ``y`` so that
+``r = 0`` holds by construction.
+
+**DLLBoundedCompletionValid**. The DLL paper (Tanneau and Van Hentenryck,
+2024) writes the primal as ``\min c^\top x`` s.t. ``Ax \succeq_{\mathcal K}
+b``, ``Hx \succeq_{\mathcal C} h`` (its eq. (6)) and the dual as ``\max b^\top
+y + h^\top z`` s.t. ``A^\top y + H^\top z = c``, ``y \in \mathcal K^*``,
+``z \in \mathcal C^*`` (eq. (7)); with ``f = Ax - b`` this is exactly the MOI
+form above, so `dual_bound` of a completed DLL prediction is the bound
+``b^\top \hat y + h^\top \hat z`` of eq. (7a). Its Theorem 1 assumes that for
+every ``\hat y \in \mathcal K^*`` the inner problem (8) is strictly feasible
+in ``Hx \succ_{\mathcal C} h`` and bounded; then a completion ``\hat z``
+exists and ``(\hat y, \hat z)`` is dual feasible (Theorem 2: the optimal
+completion gives the strongest bound for fixed ``\hat y``). For finite
+variable bounds (its Example 1) the completion is ``\hat z^l = |c -
+A^\top \hat y|^+``, ``\hat z^u = |c - A^\top \hat y|^-`` (``\hat z^u \le 0``
+in MOI signs). The tests apply this completion to random ``\hat y`` and check
+`ValidDualBound`, and check that ``\hat y = y^\star`` recovers the optimum.
+
+**StrongDualityAtOptimum**. *Assumptions:* convex class and finite optimal
+value; for LPs and convex QPs with affine constraints nothing else is needed,
+for general cones a constraint qualification (e.g. Slater) is assumed.
+*Claim:* at a primal-dual optimal pair returned by a solver, the bound equals
+the optimal value (to solver tolerance). Tested on LP (min and max), convex
+QP (min, and concave max), a QP with singular PSD Hessian and an SOCP.
 
 ## Guarantees
 
@@ -124,12 +171,18 @@ Kolter (2021):
 For a box row, ``\nu_r`` is the ReLU of both one-sided constraints, so (T5)
 is eq. (2) of that paper with ``\lambda_h = \rho_{\mathrm{eq}}`` and
 ``\lambda_g = \rho_{\mathrm{ineq}}``; `squared = false` uses the 1-norm
-instead. Deviations: variable bounds are penalised like other inequalities;
-conic distances are evaluated but not differentiated.
+instead. Deviations: none in the formula. Variable bounds are inequalities
+``g`` of eq. (2) like any other, and distances to non-decomposable cones
+(e.g. second-order cones) play the role of ``\mathrm{ReLU}(g)`` for conic
+constraints ``g(x) \in \mathcal K``, which eq. (2) does not cover. The loss
+is averaged over the batch (the expectation in the training objective).
 
-**PenaltyLossAtOptimum**: at a feasible point the penalty vanishes and the
-loss equals the mean objective. **PenaltyLossGradient**: the Zygote gradient
-of the batch loss equals central finite differences.
+**PenaltyLossMatchesDC3Eq2**: the loss equals eq. (2) written out by hand for
+a small LP. **PenaltyLossAtOptimum**: at a feasible point the penalty vanishes
+and the loss equals the mean of ``s f`` (also for maximisation).
+**PenaltyLossGradient**: the Zygote gradient of the batch loss equals central
+finite differences, on an LP and on an SOCP (where the cone distance is
+active).
 
 *Guarantee:* none. As the DC3 paper notes, soft losses do not enforce the
 constraints and can give infeasible outputs; use a completion method when

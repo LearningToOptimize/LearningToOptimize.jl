@@ -205,7 +205,7 @@ definitions are never ambiguous.
 | method | family | classes (assumptions) | guarantees | reference |
 |:--|:--|:--|:--|:--|
 | `PenaltyMethod` (this package) | primal | `LinearConic`, `ConvexQuadratic` | `NoGuarantee` | soft loss, eq. (2) of Donti et al. 2021 |
-| DLL (`L2ODLL.jl`) | dual | conic (`LinearConic`, `ConvexQuadratic`) with a completable decomposition | `ValidDualBound` | Tanneau & Van Hentenryck 2024; Klamkin et al. 2024 |
+| DLL (`L2ODLL.jl`) | dual | conic (`LinearConic`, `ConvexQuadratic`); Theorem 1 of the paper: for every predicted ``y`` in the dual cone the completion problem (8) is strictly feasible and bounded (e.g. finite variable bounds, strictly convex quadratic objective) | `ValidDualBound` | Tanneau & Van Hentenryck 2024; Klamkin et al. 2024 |
 | DC3 (`L2ODC3.jl`) | primal | equality constraints with an invertible Jacobian block | `EqualityFeasible` (inequalities: only in the limit for linear constraints) | Donti et al. 2021 |
 | ALM / PDL (`L2OALM.jl`) | primal-dual | smooth problems, kernels for batched evaluation | `NoGuarantee` (feasibility encouraged by the augmented Lagrangian) | Park & Van Hentenryck 2023 |
 | LDF (`L2OLDF.jl`) | primal | smooth problems | `NoGuarantee` | Fioretto et al. 2020 |
