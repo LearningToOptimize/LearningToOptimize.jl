@@ -26,15 +26,23 @@ end
     @test method_family(ToyPrimalDual()) == PrimalDualFamily()
 end
 
-@testset "family fallbacks: $(nameof(M))" for (M, np, nd) in
-                                              ((ToyPrimal, 4, 0), (ToyDual, 0, 11), (ToyPrimalDual, 4, 11))
+@testset "family fallbacks: $(nameof(M))" for (M, np, nd) in (
+    (ToyPrimal, 4, 0),
+    (ToyDual, 0, 11),
+    (ToyPrimalDual, 4, 11),
+)
     prob = ParametricProblem(lp_problem())
     pipe = L2OPipeline(prob, M())
     @test occursin("L2OPipeline", sprint(show, pipe))
     @test input_dimension(pipe) == 2
     @test output_dimension(pipe) == np + nd
-    ds = generate_data(pipe; sampler = BoxSampler([0.5, 1.0], [1.5, 3.0]), n = 4,
-        rng = Random.MersenneTwister(4), optimizer = HiGHS.Optimizer)
+    ds = generate_data(
+        pipe;
+        sampler = BoxSampler([0.5, 1.0], [1.5, 3.0]),
+        n = 4,
+        rng = Random.MersenneTwister(4),
+        optimizer = HiGHS.Optimizer,
+    )
     @test num_samples(ds) == 4
     @test (ds.primal !== nothing) == (np > 0)
     @test (ds.dual !== nothing) == (nd > 0)
@@ -47,7 +55,7 @@ end
     @test loss(pipe, ds.inputs, out; targets = ds) ≈ 0 atol = 1e-12
     @test loss(pipe, ds.inputs, out .+ 1; targets = ds) > 0
     @test_throws ArgumentError loss(pipe, ds.inputs, out)
-    @test_throws DimensionMismatch complete(pipe, ds.inputs, out[1:end-1, :])
+    @test_throws DimensionMismatch complete(pipe, ds.inputs, out[1:(end-1), :])
     rep = evaluate(pipe, ds.inputs, pred)
     @test (rep.objective !== nothing) == (np > 0)
     @test (rep.dual_bound !== nothing) == (nd > 0)
@@ -60,12 +68,16 @@ end
     s = ScaledSampler(prob; low = 0.9, high = 1.1)
     P = sample_parameters(s, rng, 100)
     @test size(P) == (2, 100)
-    @test all(0.9 .* [1, 2] .<= minimum(P; dims = 2)[:]) && all(maximum(P; dims = 2)[:] .<= 1.1 .* [1, 2])
+    @test all(0.9 .* [1, 2] .<= minimum(P; dims = 2)[:]) &&
+          all(maximum(P; dims = 2)[:] .<= 1.1 .* [1, 2])
     @test size(sample_parameters((r, n) -> zeros(2, n), rng, 3)) == (2, 3)
     @test_throws ArgumentError BoxSampler([1.0], [0.0])
     @test_throws DimensionMismatch BoxSampler([1.0], [0.0, 1.0])
-    ds = L2ODataset(P; primal = rand(rng, 4, 100),
-        derivatives = PullbackLabels(rand(rng, 4, 100), rand(rng, 2, 100)))
+    ds = L2ODataset(
+        P;
+        primal = rand(rng, 4, 100),
+        derivatives = PullbackLabels(rand(rng, 4, 100), rand(rng, 2, 100)),
+    )
     sub = ds[1:10]
     @test num_samples(sub) == 10
     @test size(sub.derivatives.seeds) == (4, 10)
@@ -89,12 +101,23 @@ L2OCore.extra_loss(w::AddConstant, pipe, inputs, output; proxy = nothing, kwargs
     @test guarantees(w) == guarantees(ToyPrimal())
     pipe = L2OPipeline(prob, w)
     @test pipe.decomposition == decompose(prob, ToyPrimal())
-    ds = generate_data(pipe; sampler = BoxSampler([0.5, 1.0], [1.5, 3.0]), n = 3,
-        rng = Random.MersenneTwister(6), optimizer = HiGHS.Optimizer)
+    ds = generate_data(
+        pipe;
+        sampler = BoxSampler([0.5, 1.0], [1.5, 3.0]),
+        n = 3,
+        rng = Random.MersenneTwister(6),
+        optimizer = HiGHS.Optimizer,
+    )
     @test ds.dual === nothing
     @test complete(pipe, ds.inputs, ds.primal).primal == ds.primal
     @test loss(pipe, ds.inputs, ds.primal; targets = ds) ≈ 2.0
-    @test loss(pipe, ds.inputs, ds.primal; targets = ds, proxy = x -> zeros(1, size(x, 2))) ≈ 2.0
+    @test loss(
+        pipe,
+        ds.inputs,
+        ds.primal;
+        targets = ds,
+        proxy = x -> zeros(1, size(x, 2)),
+    ) ≈ 2.0
     ds2 = with_derivatives(ds, PullbackLabels(ones(4, 3), ones(2, 3)))
     @test ds2.derivatives isa PullbackLabels && ds2.primal == ds.primal
 end

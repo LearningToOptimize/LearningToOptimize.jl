@@ -144,7 +144,16 @@ function Base.show(io::IO, r::EvaluationReport)
         v === nothing && continue
         finite = filter(isfinite, collect(v))
         m = isempty(finite) ? NaN : sum(finite) / length(finite)
-        println(io, "  ", rpad(string(f), 26), "mean = ", m, "  (", length(v), " instances)")
+        println(
+            io,
+            "  ",
+            rpad(string(f), 26),
+            "mean = ",
+            m,
+            "  (",
+            length(v),
+            " instances)",
+        )
     end
 end
 

@@ -38,7 +38,8 @@ makedocs(;
             "Dataset generation: file formats" => "arrow.md",
             "Dataset generation: parameter types" => "parametertype.md",
         ],
-        "API reference" => ["L2OCore" => "api_l2ocore.md", "LearningToOptimize" => "api.md"],
+        "API reference" =>
+            ["L2OCore" => "api_l2ocore.md", "LearningToOptimize" => "api.md"],
     ],
 )
 

@@ -47,7 +47,8 @@ end
     @test num_duals(soc) == 1 + 3
 
     # explicit class overrides detection
-    @test problem_class(ParametricProblem(lp_problem(); class = SmoothNonlinear())) isa SmoothNonlinear
+    @test problem_class(ParametricProblem(lp_problem(); class = SmoothNonlinear())) isa
+          SmoothNonlinear
 end
 
 @testset "AbstractParametricProblem / objective_sign" begin

@@ -7,7 +7,7 @@ function test_flux_jump_basic()
     for i = 1:10
         model = JuMP.Model(HiGHS.Optimizer)
 
-        @variable(model, x[i = 1:3] >= 2.3)
+        @variable(model, x[i=1:3] >= 2.3)
 
         flux_model = Chain(Dense(3, 3, relu), Dense(3, 1))
 

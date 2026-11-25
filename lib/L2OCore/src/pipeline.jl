@@ -180,8 +180,9 @@ function complete(::AbstractL2OMethod, p, inputs, output)
         ),
     )
     Z = _asbatch(output)
-    size(Z, 1) == output_dimension(d) ||
-        throw(DimensionMismatch("output has $(size(Z, 1)) rows, expected $(output_dimension(d))"))
+    size(Z, 1) == output_dimension(d) || throw(
+        DimensionMismatch("output has $(size(Z, 1)) rows, expected $(output_dimension(d))"),
+    )
     np = d.primal ? d.nprimal : 0
     X = d.primal ? Z[1:np, :] : nothing
     Y = d.dual ? Z[(np+1):end, :] : nothing
@@ -201,16 +202,10 @@ squared error between the completed prediction and the labels in `targets`
 Self-supervised methods override it (see the penalty method in
 LearningToOptimize.jl).
 """
-loss(p::L2OPipeline, inputs, output; kwargs...) = loss(p.method, p, inputs, output; kwargs...)
+loss(p::L2OPipeline, inputs, output; kwargs...) =
+    loss(p.method, p, inputs, output; kwargs...)
 
-function loss(
-    method::AbstractL2OMethod,
-    p,
-    inputs,
-    output;
-    targets = nothing,
-    kwargs...,
-)
+function loss(method::AbstractL2OMethod, p, inputs, output; targets = nothing, kwargs...)
     targets === nothing && throw(
         ArgumentError(
             "the fallback loss of $(nameof(typeof(method))) is supervised; pass `targets`",
@@ -319,8 +314,7 @@ end
 method_family(w::AbstractMethodWrapper) = method_family(inner_method(w))
 supports(w::AbstractMethodWrapper, c::AbstractProblemClass) = supports(inner_method(w), c)
 guarantees(w::AbstractMethodWrapper) = guarantees(inner_method(w))
-decompose(problem, w::AbstractMethodWrapper) =
-    decompose(problem, inner_method(w))
+decompose(problem, w::AbstractMethodWrapper) = decompose(problem, inner_method(w))
 generate_data(w::AbstractMethodWrapper, p; kwargs...) =
     generate_data(inner_method(w), p; kwargs...)
 complete(w::AbstractMethodWrapper, p, inputs, output) =

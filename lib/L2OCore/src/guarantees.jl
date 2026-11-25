@@ -154,7 +154,14 @@ instances (e.g. from [`solve_instances`](@ref)).
 """
 function check end
 
-function check(g::NoGuarantee, problem::AbstractParametricProblem, inputs, prediction; atol::Real = 1e-6, kwargs...)
+function check(
+    g::NoGuarantee,
+    problem::AbstractParametricProblem,
+    inputs,
+    prediction;
+    atol::Real = 1e-6,
+    kwargs...,
+)
     return _result(g, zeros(size(_asbatch(inputs), 2)), atol)
 end
 
@@ -174,7 +181,10 @@ function check(
     kwargs...,
 )
     X, P = _primal(prediction), _asbatch(inputs)
-    e = max.(_colmax(row_violation(evaluator, X, P)), _colmax(cone_violation(evaluator, X, P)::AbstractMatrix))
+    e = max.(
+        _colmax(row_violation(evaluator, X, P)),
+        _colmax(cone_violation(evaluator, X, P)::AbstractMatrix),
+    )
     return _result(g, e, atol)
 end
 
@@ -216,7 +226,8 @@ function check(
     reference = nothing,
     kwargs...,
 )
-    prediction.dual === nothing && throw(ArgumentError("ValidDualBound needs a dual prediction"))
+    prediction.dual === nothing &&
+        throw(ArgumentError("ValidDualBound needs a dual prediction"))
     reference === nothing && throw(
         ArgumentError("ValidDualBound needs `reference`: the optimal objective values"),
     )

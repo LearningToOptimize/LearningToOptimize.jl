@@ -84,8 +84,10 @@ function cone_violation(ev::JuMPEvaluator, X::AbstractMatrix, P::AbstractMatrix)
     F = constraint_values(ev, X, P)
     blocks = [
         (rows, JuMP.moi_set(JuMP.constraint_object(c))) for
-        (c, rows) in zip(ev.problem.constraints, ev.problem.layout) if
-        !(JuMP.moi_set(JuMP.constraint_object(c)) isa Union{_BOX_SCALAR_SETS,_BOX_VECTOR_SETS})
+        (c, rows) in zip(ev.problem.constraints, ev.problem.layout) if !(
+            JuMP.moi_set(JuMP.constraint_object(c)) isa
+            Union{_BOX_SCALAR_SETS,_BOX_VECTOR_SETS}
+        )
     ]
     return _cone_distances(F, blocks)
 end

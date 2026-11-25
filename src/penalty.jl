@@ -81,8 +81,9 @@ function L2OCore.loss(m::PenaltyMethod, pipe, inputs, output; kwargs...)
     B = size(X, 2)
     V = L2OCore.row_violation(ev, X, inputs)
     obj = s * sum(L2OCore.batch_objective(ev, X, inputs))
-    pen = m.ρ_eq * _penalty_norm(V .* eq, m.squared) +
-          m.ρ_ineq * _penalty_norm(V .* .!eq, m.squared)
+    pen =
+        m.ρ_eq * _penalty_norm(V .* eq, m.squared) +
+        m.ρ_ineq * _penalty_norm(V .* .!eq, m.squared)
     C = Zygote.ignore(() -> L2OCore.cone_violation(ev, X, inputs))
     if size(C, 1) > 0
         # Conic distances are evaluated per column and not differentiated here.
@@ -115,11 +116,11 @@ function train_flux!(
     state = Flux.setup(optimiser, model)
     N = L2OCore.num_samples(data)
     history = Float64[]
-    for epoch in 1:epochs
+    for epoch = 1:epochs
         perm = Random.randperm(rng, N)
         total = 0.0
-        for start in 1:batchsize:N
-            idx = perm[start:min(start + batchsize - 1, N)]
+        for start = 1:batchsize:N
+            idx = perm[start:min(start+batchsize-1, N)]
             batch = data[idx]
             X = batch.inputs
             ℓ, grads = Flux.withgradient(model) do mdl

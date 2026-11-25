@@ -24,7 +24,8 @@ struct BoxSampler{T<:Real} <: AbstractParameterSampler
     lower::Vector{T}
     upper::Vector{T}
     function BoxSampler(lower::AbstractVector{T}, upper::AbstractVector{T}) where {T<:Real}
-        length(lower) == length(upper) || throw(DimensionMismatch("lower and upper differ in length"))
+        length(lower) == length(upper) ||
+            throw(DimensionMismatch("lower and upper differ in length"))
         all(lower .<= upper) || throw(ArgumentError("need lower ≤ upper"))
         return new{T}(collect(lower), collect(upper))
     end
@@ -52,7 +53,11 @@ ScaledSampler(nominal::AbstractVector{<:Real}; low::Real = 0.8, high::Real = 1.2
 ScaledSampler(problem::ParametricProblem; kwargs...) =
     ScaledSampler(parameter_values(problem); kwargs...)
 
-function sample_parameters(s::ScaledSampler{T}, rng::Random.AbstractRNG, n::Integer) where {T}
+function sample_parameters(
+    s::ScaledSampler{T},
+    rng::Random.AbstractRNG,
+    n::Integer,
+) where {T}
     return s.nominal .* (s.low .+ (s.high - s.low) .* rand(rng, T, length(s.nominal), n))
 end
 
@@ -127,10 +132,19 @@ function L2ODataset(
 ) where {T<:Real}
     N = size(inputs, 2)
     for (name, x) in ((:primal, primal), (:dual, dual))
-        x === nothing || size(x, 2) == N ||
+        x === nothing ||
+            size(x, 2) == N ||
             throw(DimensionMismatch("$name has $(size(x, 2)) columns, expected $N"))
     end
-    return L2ODataset{T}(Matrix(inputs), primal, dual, objective, status, derivatives, metadata)
+    return L2ODataset{T}(
+        Matrix(inputs),
+        primal,
+        dual,
+        objective,
+        status,
+        derivatives,
+        metadata,
+    )
 end
 
 """
@@ -156,7 +170,8 @@ function Base.getindex(ds::L2ODataset, idx::AbstractVector{<:Integer})
 end
 _subset_derivatives(::Nothing, idx) = nothing
 _subset_derivatives(d::JacobianLabels, idx) = JacobianLabels(d.J[:, :, idx])
-_subset_derivatives(d::PullbackLabels, idx) = PullbackLabels(d.seeds[:, idx], d.values[:, idx])
+_subset_derivatives(d::PullbackLabels, idx) =
+    PullbackLabels(d.seeds[:, idx], d.values[:, idx])
 
 Base.show(io::IO, ds::L2ODataset{T}) where {T} = print(
     io,
@@ -164,7 +179,10 @@ Base.show(io::IO, ds::L2ODataset{T}) where {T} = print(
     num_samples(ds),
     " samples; labels: ",
     join(
-        [string(f) for f in (:primal, :dual, :objective, :status, :derivatives) if getfield(ds, f) !== nothing],
+        [
+            string(f) for f in (:primal, :dual, :objective, :status, :derivatives) if
+            getfield(ds, f) !== nothing
+        ],
         ", ",
     ),
 )
@@ -214,7 +232,7 @@ function solve_instances(
     Y = dual ? fill(T(NaN), num_duals(problem), N) : nothing
     obj = fill(T(NaN), N)
     status = Vector{MOI.TerminationStatusCode}(undef, N)
-    for k in 1:N
+    for k = 1:N
         for (p, v) in zip(problem.parameters, view(inputs, :, k))
             JuMP.set_parameter_value(p, v)
         end

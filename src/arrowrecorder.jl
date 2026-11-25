@@ -78,9 +78,9 @@ function compress_batch_arrow(
     iter_files = readdir(case_file_path; join = true)
     file_outs = [
         file for file in iter_files if occursin(case_name, file) &&
-        occursin("arrow", file) &&
-        occursin(keyword_all, file) &&
-        any(x -> occursin(x, file), keyword_any)
+            occursin("arrow", file) &&
+            occursin(keyword_all, file) &&
+            any(x -> occursin(x, file), keyword_any)
     ]
     output_table = Arrow.Table(file_outs)
     Arrow.write(

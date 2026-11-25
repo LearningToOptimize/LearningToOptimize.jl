@@ -58,7 +58,8 @@ Enzyme, …) — except [`cone_violation`](@ref) and the cone part of
 [`dual_bound`](@ref), which fall back to per-column
 `MOI.Utilities.distance_to_set`.
 """
-struct MatrixEvaluator{T<:Real,M<:AbstractMatrix{T},V<:AbstractVector{T}} <: AbstractEvaluator
+struct MatrixEvaluator{T<:Real,M<:AbstractMatrix{T},V<:AbstractVector{T}} <:
+       AbstractEvaluator
     sense::T            # +1 for min (or feasibility), -1 for max
     A::M
     B::M
@@ -101,13 +102,19 @@ function MatrixEvaluator(problem::ParametricProblem; T::Type{<:Real} = Float64)
     for (c, rows) in zip(problem.constraints, problem.layout)
         obj = JuMP.constraint_object(c)
         set = JuMP.moi_set(obj)
-        isbound = obj.func isa JuMP.AbstractVariableRef || obj.func isa AbstractVector{<:JuMP.AbstractVariableRef}
+        isbound =
+            obj.func isa JuMP.AbstractVariableRef ||
+            obj.func isa AbstractVector{<:JuMP.AbstractVariableRef}
         for (r, aff) in zip(rows, _affine_rows(obj.func))
             for (coef, v) in JuMP.linear_terms(aff)
                 if JuMP.is_parameter(v)
-                    push!(BI, r); push!(BJ, pidx[v]); push!(BV, coef)
+                    push!(BI, r);
+                    push!(BJ, pidx[v]);
+                    push!(BV, coef)
                 else
-                    push!(AI, r); push!(AJ, vidx[v]); push!(AV, coef)
+                    push!(AI, r);
+                    push!(AJ, vidx[v]);
+                    push!(AV, coef)
                 end
             end
             b[r] = JuMP.constant(aff)
@@ -129,7 +136,10 @@ function MatrixEvaluator(problem::ParametricProblem; T::Type{<:Real} = Float64)
     B = SparseArrays.sparse(BI, BJ, BV, m, np)
     # Objective
     f = JuMP.objective_function(model)
-    q = convert(JuMP.QuadExpr, f isa JuMP.AbstractVariableRef ? JuMP.AffExpr(0.0, f => 1.0) : f)
+    q = convert(
+        JuMP.QuadExpr,
+        f isa JuMP.AbstractVariableRef ? JuMP.AffExpr(0.0, f => 1.0) : f,
+    )
     Q = _quadratic_matrix(q, vidx, n, T)
     c = zeros(T, n)
     cp = zeros(T, np)
@@ -143,22 +153,45 @@ function MatrixEvaluator(problem::ParametricProblem; T::Type{<:Real} = Float64)
         if pa && pb
             i, j = pidx[a], pidx[bb]
             if i == j
-                push!(PI, i); push!(PJ, i); push!(PV, 2coef)
+                push!(PI, i);
+                push!(PJ, i);
+                push!(PV, 2coef)
             else
-                push!(PI, i, j); push!(PJ, j, i); push!(PV, coef, coef)
+                push!(PI, i, j);
+                push!(PJ, j, i);
+                push!(PV, coef, coef)
             end
         elseif pa
-            push!(HI, vidx[bb]); push!(HJ, pidx[a]); push!(HV, coef)
+            push!(HI, vidx[bb]);
+            push!(HJ, pidx[a]);
+            push!(HV, coef)
         elseif pb
-            push!(HI, vidx[a]); push!(HJ, pidx[bb]); push!(HV, coef)
+            push!(HI, vidx[a]);
+            push!(HJ, pidx[bb]);
+            push!(HV, coef)
         end
     end
     H = SparseArrays.sparse(HI, HJ, HV, n, np)
     Qpp = SparseArrays.sparse(PI, PJ, PV, np, np)
     s = JuMP.objective_sense(model) == MOI.MAX_SENSE ? -one(T) : one(T)
     return MatrixEvaluator(
-        s, A, B, b, lower, upper, Q, c, H, cp, Qpp, T(JuMP.constant(q)),
-        box, eq, bnd, cones, Ref{Any}(nothing),
+        s,
+        A,
+        B,
+        b,
+        lower,
+        upper,
+        Q,
+        c,
+        H,
+        cp,
+        Qpp,
+        T(JuMP.constant(q)),
+        box,
+        eq,
+        bnd,
+        cones,
+        Ref{Any}(nothing),
     )
 end
 
@@ -212,7 +245,12 @@ end
 
 _finite(x) = ifelse(isfinite(x), x, zero(x))
 
-function dual_bound(ev::MatrixEvaluator, Y::AbstractMatrix, P::AbstractMatrix; atol::Real = 1e-6)
+function dual_bound(
+    ev::MatrixEvaluator,
+    Y::AbstractMatrix,
+    P::AbstractMatrix;
+    atol::Real = 1e-6,
+)
     s = ev.sense
     # Stationarity residual of the Lagrangian of the (minimisation-form) problem.
     R = s .* (ev.c .+ ev.H * P) .- ev.A' * Y
@@ -241,7 +279,8 @@ function dual_bound(ev::MatrixEvaluator, Y::AbstractMatrix, P::AbstractMatrix; a
     for (rows, set) in ev.cones
         dset = MOI.dual_set(set)
         for k in axes(Y, 2)
-            infeas[k] = max(infeas[k], MOI.Utilities.distance_to_set(collect(Y[rows, k]), dset))
+            infeas[k] =
+                max(infeas[k], MOI.Utilities.distance_to_set(collect(Y[rows, k]), dset))
         end
     end
     bound = ifelse.(infeas .<= atol, s .* g, s .* typemin(eltype(g)))

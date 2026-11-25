@@ -47,14 +47,30 @@ report("Lux: Zygote over Zygote", () -> Zygote.gradient(lz, ps)[1], g)
 report("Lux: Zygote over ForwardDiff", () -> Zygote.gradient(lf, ps)[1], g)
 report("Lux: Zygote over Lux.vector_jacobian_product", () -> Zygote.gradient(lv, ps)[1], g)
 report("Lux: ForwardDiff over Zygote", () -> ForwardDiff.gradient(lz, ps), g)
-report("Lux: Enzyme over Enzyme", () -> begin
-    inner(p) = (dX = zero(X);
-    Enzyme.autodiff(Enzyme.Reverse, x -> sum(sm(p)(x) .* V), Enzyme.Active, Enzyme.Duplicated(copy(X), dX));
-    sum(abs2, dX .- T))
-    dp = zero(ps)
-    Enzyme.autodiff(Enzyme.Reverse, inner, Enzyme.Active, Enzyme.Duplicated(copy(ps), dp))
-    dp
-end, g)
+report(
+    "Lux: Enzyme over Enzyme",
+    () -> begin
+        inner(p) = (
+            dX = zero(X);
+            Enzyme.autodiff(
+                Enzyme.Reverse,
+                x -> sum(sm(p)(x) .* V),
+                Enzyme.Active,
+                Enzyme.Duplicated(copy(X), dX),
+            );
+            sum(abs2, dX .- T)
+        )
+        dp = zero(ps)
+        Enzyme.autodiff(
+            Enzyme.Reverse,
+            inner,
+            Enzyme.Active,
+            Enzyme.Duplicated(copy(ps), dp),
+        )
+        dp
+    end,
+    g,
+)
 
 # Flux
 θ, re = Flux.destructure(Flux.f64(Flux.Chain(Flux.Dense(3 => 8, tanh), Flux.Dense(8 => 2))))

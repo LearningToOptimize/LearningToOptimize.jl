@@ -39,7 +39,7 @@ function line_sampler(
     for parameter_index = 1:length(original_parameters)
         parameters[
             :,
-            length(range_p)*parameter_index+1:length(range_p)*(parameter_index+1),
+            (length(range_p)*parameter_index+1):(length(range_p)*(parameter_index+1)),
         ] = line_sampler(original_parameters, [parameter_index], range_p)
     end
 
@@ -151,13 +151,12 @@ end
 Load the parameters from a JuMP model.
 """
 function load_parameters(model::JuMP.Model)
-    cons =
-        constraint_object.(
-            [
-                all_constraints(model, VariableRef, MOI.Parameter{Float64})
-                all_constraints(model, VariableRef, MOI.EqualTo{Float64})
-            ]
-        )
+    cons = constraint_object.(
+        [
+            all_constraints(model, VariableRef, MOI.Parameter{Float64})
+            all_constraints(model, VariableRef, MOI.EqualTo{Float64})
+        ],
+    )
     parameters = [cons[i].func for i = 1:length(cons)]
     parameters = sort(parameters; by = (v) -> index(v).value)
     return parameters

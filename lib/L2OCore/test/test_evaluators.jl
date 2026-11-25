@@ -1,12 +1,18 @@
 using JuMP, Test, L2OCore, Random
 import HiGHS, Clarabel
 
-const _CLARABEL = optimizer_with_attributes(Clarabel.Optimizer, "verbose" => false,
-    "tol_gap_abs" => 1e-10, "tol_gap_rel" => 1e-10, "tol_feas" => 1e-10)
+const _CLARABEL = optimizer_with_attributes(
+    Clarabel.Optimizer,
+    "verbose" => false,
+    "tol_gap_abs" => 1e-10,
+    "tol_gap_rel" => 1e-10,
+    "tol_feas" => 1e-10,
+)
 
 @testset "MatrixEvaluator == JuMPEvaluator on random points" begin
     rng = Random.MersenneTwister(1)
-    for build in (lp_problem, qp_problem, socp_problem, () -> lp_problem(; sense = MOI.MAX_SENSE))
+    for build in
+        (lp_problem, qp_problem, socp_problem, () -> lp_problem(; sense = MOI.MAX_SENSE))
         prob = ParametricProblem(build())
         me = MatrixEvaluator(prob)
         je = JuMPEvaluator(prob)
@@ -30,7 +36,8 @@ end
     P = rand(Float32, num_parameters(prob), 3)
     @test eltype(batch_objective(me, X, P)) == Float32
     @test eltype(row_violation(me, X, P)) == Float32
-    @test batch_objective(me, X, P) ≈ batch_objective(MatrixEvaluator(prob), Float64.(X), Float64.(P)) rtol = 1e-5
+    @test batch_objective(me, X, P) ≈
+          batch_objective(MatrixEvaluator(prob), Float64.(X), Float64.(P)) rtol = 1e-5
 end
 
 @testset "nonlinear problems fall back to JuMPEvaluator" begin
@@ -43,7 +50,8 @@ end
     @test default_evaluator(prob) isa JuMPEvaluator
     @test_throws ArgumentError MatrixEvaluator(prob)
     ev = default_evaluator(prob)
-    X = reshape([0.0, 2.0], 1, 2); P = reshape([1.0, 1.0], 1, 2)
+    X = reshape([0.0, 2.0], 1, 2);
+    P = reshape([1.0, 1.0], 1, 2)
     @test batch_objective(ev, X, P) ≈ [1.0, 1.0]
     @test vec(row_violation(ev, X, P)) ≈ [0.0, exp(2) - 3]
     @test_throws ArgumentError dual_bound(ev, zeros(1, 2), P)
@@ -55,7 +63,11 @@ end
     rng = Random.MersenneTwister(2)
     cases = (
         (lp_problem, HiGHS.Optimizer, BoxSampler([0.5, 1.0], [1.5, 3.0])),
-        (() -> lp_problem(; sense = MOI.MAX_SENSE), HiGHS.Optimizer, BoxSampler([0.5, 1.0], [1.5, 3.0])),
+        (
+            () -> lp_problem(; sense = MOI.MAX_SENSE),
+            HiGHS.Optimizer,
+            BoxSampler([0.5, 1.0], [1.5, 3.0]),
+        ),
         (qp_problem, _CLARABEL, BoxSampler([-1.0, -1.0], [1.0, 1.0])),
         (socp_problem, _CLARABEL, BoxSampler([0.5], [2.0])),
     )

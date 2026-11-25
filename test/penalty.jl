@@ -45,7 +45,8 @@ function test_penalty_method()
         h = 1e-6
         Gfd = similar(X0)
         for i in eachindex(X0)
-            e = zero(X0); e[i] = h
+            e = zero(X0);
+            e[i] = h
             Gfd[i] = (f(X0 .+ e) - f(X0 .- e)) / 2h
         end
         @test G ≈ Gfd rtol = 1e-4 atol = 1e-6
@@ -53,8 +54,15 @@ function test_penalty_method()
         # End-to-end: training reduces the loss and gives a small optimality gap.
         model = Flux.f64(Chain(Dense(2 => 32, relu), Dense(32 => 3)))
         before = loss(pipe, ref.inputs, model(ref.inputs))
-        hist = train_flux!(pipe, model, data; epochs = 200, batchsize = 16, rng,
-            optimiser = Flux.Optimisers.Adam(1e-2))
+        hist = train_flux!(
+            pipe,
+            model,
+            data;
+            epochs = 200,
+            batchsize = 16,
+            rng,
+            optimiser = Flux.Optimisers.Adam(1e-2),
+        )
         after = loss(pipe, ref.inputs, model(ref.inputs))
         @test after < before
         @test hist[end] < hist[1]
