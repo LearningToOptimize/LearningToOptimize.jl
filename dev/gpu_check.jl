@@ -43,15 +43,15 @@ const MONOREPO = ORG * "LearningToOptimize.jl"
 const DEVICE_PKGS = DEVICE == "cuda" ? ["CUDA", "LuxCUDA"] : ["JLArrays"]
 const SPECS = if IS_WORKER
     [
-        PackageSpec(; url = MONOREPO, subdir = "lib/L2OCore", rev = "ar/l2osobolev"),
-        PackageSpec(; url = MONOREPO, subdir = "lib/L2OSobolev", rev = "ar/l2osobolev"),
+        PackageSpec(; url = MONOREPO, subdir = "lib/L2OCore", rev = "e5839cfd711606eed8ee62556b74b7817c822fdf"),
+        PackageSpec(; url = MONOREPO, subdir = "lib/L2OSobolev", rev = "e5839cfd711606eed8ee62556b74b7817c822fdf"),
     ]
 else
     [
-        PackageSpec(; url = MONOREPO, subdir = "lib/L2OCore", rev = "ar/l2ocore-design"),
-        PackageSpec(; url = ORG * "L2ODLL.jl", rev = "ar/l2ocore-interface-extras"),
-        PackageSpec(; url = ORG * "L2ODC3.jl", rev = "ar/dc3-implementation"),
-        PackageSpec(; url = ORG * "L2OALM.jl", rev = "ar/alm-on-l2ocore"),
+        PackageSpec(; url = MONOREPO, subdir = "lib/L2OCore", rev = "02f78588115ad79cc779b8e0d150360491eee1fe"),
+        PackageSpec(; url = ORG * "L2ODLL.jl", rev = "e6708eebd987140b412c12debbffbd7e506e6c74"),
+        PackageSpec(; url = ORG * "L2ODC3.jl", rev = "8656c8066627a1341a84f54de42457446f0bb7a8"),
+        PackageSpec(; url = ORG * "L2OALM.jl", rev = "15d35d21e65f2bfce64ebb305f9eb2f6523afb27"),
         PackageSpec(; url = ORG * "BatchNLPKernels.jl", rev = "main"),
     ]
 end
