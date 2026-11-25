@@ -98,3 +98,31 @@ L2OCore.extra_loss(w::AddConstant, pipe, inputs, output; proxy = nothing, kwargs
     ds2 = with_derivatives(ds, PullbackLabels(ones(4, 3), ones(2, 3)))
     @test ds2.derivatives isa PullbackLabels && ds2.primal == ds.primal
 end
+
+struct NoExtra <: AbstractMethodWrapper
+    inner::ToyPrimal
+end
+@testset "wrapper without extra_loss errors clearly" begin
+    pipe = L2OPipeline(ParametricProblem(lp_problem()), NoExtra(ToyPrimal()))
+    t = (primal = zeros(4, 1),)
+    @test_throws ArgumentError loss(pipe, zeros(2, 1), zeros(4, 1); targets = t)
+end
+
+# Method packages typically type only the method argument; this must not be
+# ambiguous with the family or wrapper fallbacks.
+struct Custom <: AbstractPrimalMethod end
+L2OCore.supports(::Custom, ::LinearConic) = true
+L2OCore.decompose(problem, ::Custom) = FullSpaceDecomposition(true, false, 4, 0)
+L2OCore.complete(::Custom, pipe, inputs, output) = Prediction(primal = 2 .* output)
+L2OCore.loss(::Custom, pipe, inputs, output; kwargs...) = sum(output)
+L2OCore.generate_data(::Custom, pipe; n, kwargs...) = L2ODataset(zeros(2, n))
+@testset "no ambiguities for typical method definitions" begin
+    pipe = L2OPipeline(ParametricProblem(lp_problem()), Custom())
+    @test complete(pipe, zeros(2, 1), ones(4, 1)).primal == fill(2.0, 4, 1)
+    @test loss(pipe, zeros(2, 1), ones(4, 1)) == 4
+    @test num_samples(generate_data(pipe; n = 3)) == 3
+    w = AddConstant(Custom(), 1.0)
+    pw = L2OPipeline(ParametricProblem(lp_problem()), w)
+    @test loss(pw, zeros(2, 1), ones(4, 1)) == 5
+    @test complete(pw, zeros(2, 1), ones(4, 1)).primal == fill(2.0, 4, 1)
+end

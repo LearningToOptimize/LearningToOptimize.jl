@@ -53,7 +53,7 @@ Compute the method-specific structure of `problem`. Called once by
 Fallback by family ([`FullSpaceDecomposition`](@ref)): primal methods predict
 all primal variables, dual methods all duals, primal-dual methods both.
 """
-function decompose(problem::ParametricProblem, method::AbstractL2OMethod)
+function decompose(problem, method::AbstractL2OMethod)
     fam = method_family(method)
     return FullSpaceDecomposition(
         predicts_primal(fam),
@@ -139,7 +139,7 @@ generate_data(p::L2OPipeline; kwargs...) = generate_data(p.method, p; kwargs...)
 
 function generate_data(
     method::AbstractL2OMethod,
-    p::L2OPipeline;
+    p;
     sampler,
     n::Integer,
     rng::Random.AbstractRNG = Random.default_rng(),
@@ -171,7 +171,7 @@ differentiated and run on accelerators when the loss needs them.
 """
 complete(p::L2OPipeline, inputs, output) = complete(p.method, p, inputs, output)
 
-function complete(::AbstractL2OMethod, p::L2OPipeline, inputs, output)
+function complete(::AbstractL2OMethod, p, inputs, output)
     d = p.decomposition
     d isa FullSpaceDecomposition || throw(
         ArgumentError(
@@ -205,7 +205,7 @@ loss(p::L2OPipeline, inputs, output; kwargs...) = loss(p.method, p, inputs, outp
 
 function loss(
     method::AbstractL2OMethod,
-    p::L2OPipeline,
+    p,
     inputs,
     output;
     targets = nothing,
@@ -289,7 +289,9 @@ or extra regularisers. A wrapper must implement
   - `L2OCore.extra_loss(w, pipe, inputs, output; targets, proxy, kwargs...)` →
     the additional loss term (a scalar).
 
-Everything else (family, [`supports`](@ref), [`guarantees`](@ref),
+Leave the `pipe`, `inputs` and `output` arguments untyped (or typed no more
+narrowly than the fallbacks) to avoid method ambiguities. Everything else
+(family, [`supports`](@ref), [`guarantees`](@ref),
 [`decompose`](@ref), [`generate_data`](@ref), [`complete`](@ref)) is forwarded
 to the inner method, and [`loss`](@ref) is `loss(inner) + extra_loss(wrapper)`.
 A wrapper may override any of them, e.g. `generate_data` to attach derivative
@@ -310,18 +312,20 @@ inner_method(w::AbstractMethodWrapper) = w.inner
 Additional loss term contributed by a wrapper; see
 [`AbstractMethodWrapper`](@ref).
 """
-function extra_loss end
+function extra_loss(w::AbstractMethodWrapper, p, inputs, output; kwargs...)
+    throw(ArgumentError("wrapper $(nameof(typeof(w))) must implement `L2OCore.extra_loss`"))
+end
 
 method_family(w::AbstractMethodWrapper) = method_family(inner_method(w))
 supports(w::AbstractMethodWrapper, c::AbstractProblemClass) = supports(inner_method(w), c)
 guarantees(w::AbstractMethodWrapper) = guarantees(inner_method(w))
-decompose(problem::ParametricProblem, w::AbstractMethodWrapper) =
+decompose(problem, w::AbstractMethodWrapper) =
     decompose(problem, inner_method(w))
-generate_data(w::AbstractMethodWrapper, p::L2OPipeline; kwargs...) =
+generate_data(w::AbstractMethodWrapper, p; kwargs...) =
     generate_data(inner_method(w), p; kwargs...)
-complete(w::AbstractMethodWrapper, p::L2OPipeline, inputs, output) =
+complete(w::AbstractMethodWrapper, p, inputs, output) =
     complete(inner_method(w), p, inputs, output)
-function loss(w::AbstractMethodWrapper, p::L2OPipeline, inputs, output; kwargs...)
+function loss(w::AbstractMethodWrapper, p, inputs, output; kwargs...)
     return loss(inner_method(w), p, inputs, output; kwargs...) +
            extra_loss(w, p, inputs, output; kwargs...)
 end
