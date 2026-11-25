@@ -45,7 +45,7 @@ function test_penalty_method()
         h = 1e-6
         Gfd = similar(X0)
         for i in eachindex(X0)
-            e = zero(X0);
+            e = zero(X0)
             e[i] = h
             Gfd[i] = (f(X0 .+ e) - f(X0 .- e)) / 2h
         end

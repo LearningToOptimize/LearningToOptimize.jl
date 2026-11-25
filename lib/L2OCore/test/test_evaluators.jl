@@ -42,7 +42,7 @@ end
     @test default_evaluator(prob) isa JuMPEvaluator
     @test_throws ArgumentError MatrixEvaluator(prob)
     ev = default_evaluator(prob)
-    X = reshape([0.0, 2.0], 1, 2);
+    X = reshape([0.0, 2.0], 1, 2)
     P = reshape([1.0, 1.0], 1, 2)
     @test batch_objective(ev, X, P) ≈ [1.0, 1.0]
     @test vec(row_violation(ev, X, P)) ≈ [0.0, exp(2) - 3]

@@ -141,15 +141,15 @@ function _quadratic_matrix(q::JuMP.GenericQuadExpr, idx::Dict, n::Int, ::Type{T}
         (JuMP.is_parameter(a) || JuMP.is_parameter(b)) && continue
         i, j = idx[a], idx[b]
         if i == j
-            push!(I, i);
-            push!(J, i);
+            push!(I, i)
+            push!(J, i)
             push!(V, 2 * coef)
         else
-            push!(I, i);
-            push!(J, j);
+            push!(I, i)
+            push!(J, j)
             push!(V, coef)
-            push!(I, j);
-            push!(J, i);
+            push!(I, j)
+            push!(J, i)
             push!(V, coef)
         end
     end

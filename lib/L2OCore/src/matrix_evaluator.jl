@@ -108,12 +108,12 @@ function MatrixEvaluator(problem::ParametricProblem; T::Type{<:Real} = Float64)
         for (r, aff) in zip(rows, _affine_rows(obj.func))
             for (coef, v) in JuMP.linear_terms(aff)
                 if JuMP.is_parameter(v)
-                    push!(BI, r);
-                    push!(BJ, pidx[v]);
+                    push!(BI, r)
+                    push!(BJ, pidx[v])
                     push!(BV, coef)
                 else
-                    push!(AI, r);
-                    push!(AJ, vidx[v]);
+                    push!(AI, r)
+                    push!(AJ, vidx[v])
                     push!(AV, coef)
                 end
             end
@@ -153,21 +153,21 @@ function MatrixEvaluator(problem::ParametricProblem; T::Type{<:Real} = Float64)
         if pa && pb
             i, j = pidx[a], pidx[bb]
             if i == j
-                push!(PI, i);
-                push!(PJ, i);
+                push!(PI, i)
+                push!(PJ, i)
                 push!(PV, 2coef)
             else
-                push!(PI, i, j);
-                push!(PJ, j, i);
+                push!(PI, i, j)
+                push!(PJ, j, i)
                 push!(PV, coef, coef)
             end
         elseif pa
-            push!(HI, vidx[bb]);
-            push!(HJ, pidx[a]);
+            push!(HI, vidx[bb])
+            push!(HJ, pidx[a])
             push!(HV, coef)
         elseif pb
-            push!(HI, vidx[a]);
-            push!(HJ, pidx[bb]);
+            push!(HI, vidx[a])
+            push!(HJ, pidx[bb])
             push!(HV, coef)
         end
     end
