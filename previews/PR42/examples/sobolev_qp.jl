@@ -37,8 +37,8 @@ problem = ParametricProblem(model)
 
 # ## Methods and data
 #
-# `SobolevRegularized` keeps everything of the wrapped method (support,
-# guarantees, completion) and adds the derivative term. `LuxNestedAD()`
+# `SobolevRegularized` keeps everything of the wrapped method (supported
+# problem classes, decomposition, completion) and adds the derivative term. `LuxNestedAD()`
 # computes the proxy Jacobian exactly with Lux's nested-AD helpers.
 
 plain = SupervisedMSE()
@@ -54,7 +54,7 @@ train = generate_data(pipe; sampler, n = 8, rng = Xoshiro(2), optimizer = HiGHS.
 test = generate_data(pipe; sampler, n = 200, rng = Xoshiro(3), optimizer = HiGHS.Optimizer)
 train
 
-# The labels can be checked against finite differences of the solver map:
+# The labels can be compared with finite differences of the solver map:
 # small errors mean the samples are regular points (no active-set change).
 
 maximum(label_errors(train.derivatives, problem, train.inputs; optimizer = HiGHS.Optimizer))
