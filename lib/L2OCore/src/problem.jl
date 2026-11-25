@@ -1,4 +1,16 @@
 """
+    AbstractParametricProblem
+
+Supertype of parametric problems, independent of the modelling front end.
+[`ParametricProblem`](@ref) is the JuMP front end; other front ends (for example
+an ExaModels-based one) subtype this and implement [`problem_class`](@ref),
+[`num_parameters`](@ref), [`num_decision_variables`](@ref),
+[`num_duals`](@ref), [`objective_sign`](@ref) and [`default_evaluator`](@ref)
+(and [`solve_instances`](@ref) to support solver-labelled data).
+"""
+abstract type AbstractParametricProblem end
+
+"""
     ParametricProblem(model::JuMP.Model; class = detect_problem_class(model))
 
 A parametric optimization problem: a JuMP model in which the problem data that
@@ -21,7 +33,7 @@ a convex QCQP or a custom class).
 
 Fields are considered internal; use the accessor functions.
 """
-struct ParametricProblem{C<:AbstractProblemClass}
+struct ParametricProblem{C<:AbstractProblemClass} <: AbstractParametricProblem
     model::JuMP.Model
     parameters::Vector{JuMP.VariableRef}
     variables::Vector{JuMP.VariableRef}
@@ -102,6 +114,15 @@ num_duals(p::ParametricProblem) = isempty(p.layout) ? 0 : last(p.layout[end])
 Rows of a dual prediction owned by each constraint in [`constraint_refs`](@ref).
 """
 dual_layout(p::ParametricProblem) = p.layout
+
+"""
+    objective_sign(problem) -> Int
+
+`1` for minimisation (and feasibility) problems, `-1` for maximisation;
+`objective_sign(problem) * objective` is always to be minimised.
+"""
+objective_sign(p::ParametricProblem) =
+    JuMP.objective_sense(p.model) == MOI.MAX_SENSE ? -1 : 1
 
 """
     parameter_values(problem::ParametricProblem) -> Vector{Float64}

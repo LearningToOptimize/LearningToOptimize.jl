@@ -44,7 +44,7 @@ Throw an [`UnsupportedProblemError`](@ref) unless
 `supports(method, problem_class(problem))`. Called by [`L2OPipeline`](@ref)
 before anything else.
 """
-function check_supports(problem::ParametricProblem, method::AbstractL2OMethod)
+function check_supports(problem::AbstractParametricProblem, method::AbstractL2OMethod)
     supports(method, problem_class(problem)) ||
         throw(UnsupportedProblemError(method, problem_class(problem)))
     return nothing
@@ -154,7 +154,7 @@ instances (e.g. from [`solve_instances`](@ref)).
 """
 function check end
 
-function check(g::NoGuarantee, problem::ParametricProblem, inputs, prediction; atol::Real = 1e-6, kwargs...)
+function check(g::NoGuarantee, problem::AbstractParametricProblem, inputs, prediction; atol::Real = 1e-6, kwargs...)
     return _result(g, zeros(size(_asbatch(inputs), 2)), atol)
 end
 
@@ -166,7 +166,7 @@ end
 
 function check(
     g::Feasible,
-    problem::ParametricProblem,
+    problem::AbstractParametricProblem,
     inputs,
     prediction;
     atol::Real = 1e-6,
@@ -180,7 +180,7 @@ end
 
 function check(
     g::EqualityFeasible,
-    problem::ParametricProblem,
+    problem::AbstractParametricProblem,
     inputs,
     prediction;
     atol::Real = 1e-6,
@@ -194,7 +194,7 @@ end
 
 function check(
     g::BoundFeasible,
-    problem::ParametricProblem,
+    problem::AbstractParametricProblem,
     inputs,
     prediction;
     atol::Real = 1e-6,
@@ -208,7 +208,7 @@ end
 
 function check(
     g::ValidDualBound,
-    problem::ParametricProblem,
+    problem::AbstractParametricProblem,
     inputs,
     prediction;
     atol::Real = 1e-6,
@@ -222,7 +222,7 @@ function check(
     )
     Y, P = _asbatch(prediction.dual), _asbatch(inputs)
     bound, infeas = dual_bound(evaluator, Y, P; atol = atol)
-    s = JuMP.objective_sense(problem.model) == MOI.MAX_SENSE ? -1 : 1
+    s = objective_sign(problem)
     # error = dual infeasibility, or bound exceeding the optimum (scaled).
     excess = max.(s .* (bound .- reference), 0) ./ max.(1, abs.(reference))
     e = max.(infeas, excess)

@@ -70,15 +70,13 @@ function L2OCore.generate_data(
     return L2OCore.solve_instances(pipe.problem, P; optimizer = optimizer, kwargs...)
 end
 
-_objective_sign(problem) = JuMP.objective_sense(problem.model) == MOI.MAX_SENSE ? -1 : 1
-
 _penalty_norm(V, squared::Bool) = squared ? sum(abs2, V) : sum(V)
 
 # Soft loss, eq. (2) of DC3 (arXiv:2104.12225): f + λ_h‖h‖² + λ_g‖ReLU(g)‖².
 function L2OCore.loss(m::PenaltyMethod, pipe, inputs, output; kwargs...)
     ev = pipe.evaluator
     X = L2OCore.complete(m, pipe, inputs, output).primal
-    s = Zygote.ignore(() -> _objective_sign(pipe.problem))
+    s = Zygote.ignore(() -> L2OCore.objective_sign(pipe.problem))
     eq = Zygote.ignore(() -> L2OCore.equality_rows(ev))
     B = size(X, 2)
     V = L2OCore.row_violation(ev, X, inputs)

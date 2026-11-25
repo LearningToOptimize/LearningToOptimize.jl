@@ -80,7 +80,7 @@ evaluate(pipe, inputs, pred)
 ```
 """
 struct L2OPipeline{
-    P<:ParametricProblem,
+    P<:AbstractParametricProblem,
     M<:AbstractL2OMethod,
     D<:AbstractDecomposition,
     E<:AbstractEvaluator,
@@ -92,7 +92,7 @@ struct L2OPipeline{
 end
 
 function L2OPipeline(
-    problem::ParametricProblem,
+    problem::AbstractParametricProblem,
     method::AbstractL2OMethod;
     evaluator::AbstractEvaluator = default_evaluator(problem),
 )
@@ -251,7 +251,7 @@ evaluate(p::L2OPipeline, inputs, prediction::Prediction; kwargs...) =
     evaluate(p.problem, inputs, prediction; evaluator = p.evaluator, kwargs...)
 
 function evaluate(
-    problem::ParametricProblem,
+    problem::AbstractParametricProblem,
     inputs,
     prediction::Prediction;
     evaluator::AbstractEvaluator = default_evaluator(problem),

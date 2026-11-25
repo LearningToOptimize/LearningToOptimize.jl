@@ -49,3 +49,9 @@ end
     # explicit class overrides detection
     @test problem_class(ParametricProblem(lp_problem(); class = SmoothNonlinear())) isa SmoothNonlinear
 end
+
+@testset "AbstractParametricProblem / objective_sign" begin
+    @test ParametricProblem(lp_problem()) isa AbstractParametricProblem
+    @test objective_sign(ParametricProblem(lp_problem())) == 1
+    @test objective_sign(ParametricProblem(lp_problem(; sense = MOI.MAX_SENSE))) == -1
+end
