@@ -86,7 +86,7 @@ proxies =
     Dict("plain" => train_proxy(plain, train), "Sobolev" => train_proxy(sobolev, train));
 nothing #hide
 
-# ## Generalisation from 8 samples
+# ## Generalization from 8 samples
 #
 # Test value error and test Jacobian error of both proxies:
 
@@ -103,13 +103,13 @@ for (name, sm) in sort(collect(proxies); by = first)
 end
 
 # Each sample now carries ``4 × 3 = 12`` derivative conditions in addition to
-# its 4 values, and the Sobolev proxy generalises markedly better.
+# its 4 values, and the Sobolev proxy generalizes markedly better.
 #
 # ## Variations
 #
 # - **Masking** (the paper's algorithmic control): match a random 25% of the
 #   Jacobian entries per update with `mask = RandomMask(0.25)`. The masked loss
-#   is normalised so it is an unbiased estimate of the dense one.
+#   is normalized so it is an unbiased estimate of the dense one.
 # - **Cheaper labels**: `directions = RandomPullbacks()` records one random row
 #   of the Jacobian per sample (one reverse sensitivity solve) instead of all of
 #   it.
