@@ -51,6 +51,9 @@ num_duals
 dual_layout
 parameter_values
 objective_sign
+supports
+check_supports
+UnsupportedProblemError
 ```
 
 ## Evaluation
@@ -70,23 +73,6 @@ L2OCore.bound_rows
 dual_bound
 EvaluationReport
 evaluate
-```
-
-## Assumptions and guarantees
-
-```@docs
-supports
-check_supports
-UnsupportedProblemError
-guarantees
-AbstractGuarantee
-NoGuarantee
-Feasible
-EqualityFeasible
-BoundFeasible
-ValidDualBound
-check
-CheckResult
 ```
 
 ## Data
@@ -119,4 +105,18 @@ generate_data
 complete
 loss
 train_proxy!
+```
+
+## Other exported names
+
+```@docs
+guarantees
+AbstractGuarantee
+NoGuarantee
+Feasible
+EqualityFeasible
+BoundFeasible
+ValidDualBound
+check
+CheckResult
 ```

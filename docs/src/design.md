@@ -2,15 +2,16 @@
 
 This page explains how the code is organised and why. The goal is that
 **implementing a new learning-to-optimize (L2O) method takes only the code
-that is specific to that method**. Data generation, evaluation, feasibility
-and duality checks, samplers and dataset conventions are shared.
+that is specific to that method**. Data generation, evaluation of
+objectives, violations and dual bounds, samplers and dataset conventions are
+shared.
 
 ## Packages
 
 ```mermaid
 graph TD
     subgraph "LearningToOptimize.jl (this repository)"
-        CORE["lib/L2OCore.jl<br/>interfaces, problem wrapper,<br/>evaluators, guarantees, datasets"]
+        CORE["lib/L2OCore.jl<br/>interfaces, problem wrapper,<br/>evaluators, datasets"]
         MAIN["LearningToOptimize.jl<br/>penalty method, Flux training,<br/>dataset files, samplers, models"]
         DATA["lib/L2OData.jl (planned)<br/>dataset file formats"]
         KERN["lib/L2OKernels.jl (planned)<br/>batched GPU evaluators"]
@@ -33,7 +34,7 @@ graph TD
 
 | package | role | dependencies |
 |:--|:--|:--|
-| `L2OCore` (`lib/L2OCore`) | method hierarchy, problem classes, `ParametricProblem`, evaluators, guarantees, datasets, method-dispatched pipeline | JuMP, MathOptInterface, LinearAlgebra, SparseArrays, Random |
+| `L2OCore` (`lib/L2OCore`) | method hierarchy, problem classes, `ParametricProblem`, evaluators, datasets, method-dispatched pipeline | JuMP, MathOptInterface, LinearAlgebra, SparseArrays, Random |
 | `LearningToOptimize` | the penalty method, Flux training loop, existing dataset generation (`ProblemIterator`, recorders, samplers), `FullyConnected` models; re-exports `L2OCore` | `L2OCore` + ML and file-format stack |
 | method packages (`L2ODLL`, `L2ODC3`, `L2OALM`, `L2OLDF`, …) | one method family member each | `L2OCore` only (plus what the method itself needs) |
 | `L2OKernels` (planned) | batched GPU evaluators as an `AbstractEvaluator` backend | ExaModels / BatchNLPKernels, loaded as a package extension |
@@ -95,13 +96,6 @@ classDiagram
     AbstractProblemClass <|-- SmoothNonlinear
     AbstractProblemClass <|-- MixedInteger
 
-    class AbstractGuarantee
-    AbstractGuarantee <|-- NoGuarantee
-    AbstractGuarantee <|-- Feasible
-    AbstractGuarantee <|-- EqualityFeasible
-    AbstractGuarantee <|-- BoundFeasible
-    AbstractGuarantee <|-- ValidDualBound
-
     class AbstractEvaluator
     AbstractEvaluator <|-- MatrixEvaluator
     AbstractEvaluator <|-- JuMPEvaluator
@@ -113,9 +107,7 @@ classDiagram
   are generated, how the raw output is split.
 - **Problem classes** are traits of the problem, detected from the JuMP model
   (`detect_problem_class`) or given explicitly. They exist so that a method can
-  state *where its guarantees hold*.
-- **Guarantees** are named properties of completed predictions. Each has a
-  numerical `check`; the names are the anchors for formal proofs later.
+  declare which problems its mathematics applies to (`supports`).
 - **Evaluators** are interchangeable backends for batched objective,
   constraint, violation and dual-bound evaluation.
 - **Wrappers** (`AbstractMethodWrapper`) add behaviour to *any* method
@@ -134,8 +126,7 @@ flowchart LR
     TR --> PX["proxy(P)"]
     PX --> CO["complete(pipe, P, raw)"]
     CO --> PR["Prediction(primal, dual)"]
-    PR --> EV["evaluate → EvaluationReport"]
-    PR --> CH["check(guarantee, …) → CheckResult"]
+    PR --> EV["evaluate → EvaluationReport<br/>objective, violations,<br/>dual bound, gap"]
 ```
 
 Layouts are fixed once by `ParametricProblem`:
@@ -171,7 +162,7 @@ sequenceDiagram
         P->>M: loss(method, pipe, …)
     end
     U->>P: complete(pipe, P, proxy(P))
-    U->>P: evaluate / check(guarantees(method)…)
+    U->>P: evaluate(pipe, P, prediction)
 ```
 
 What a method package writes:
@@ -180,18 +171,18 @@ What a method package writes:
 |:--|:--|:--|
 | `struct M <: Abstract*Method` | yes | — |
 | `supports(::M, ::Class) = true` | yes, per class | `false` (no silent fallback) |
-| `guarantees(::M)` | if any | `(NoGuarantee(),)` |
 | `decompose(problem, ::M)` | if the method predicts a subset | `FullSpaceDecomposition` by family |
 | `generate_data(::M, pipe; …)` | if labels differ | sample + solve, labels by family |
 | `complete(::M, pipe, P, raw)` | if there is a completion/repair | split raw output |
 | `loss(::M, pipe, P, raw; …)` | if not supervised MSE | supervised MSE |
 
-**Why `supports` is opt-in.** A method's guarantees are theorems with
-hypotheses. Running DLL on a nonconvex problem or DC3's correction on
-nonlinear constraints silently changes what the output means. The pipeline
-therefore refuses unsupported classes up front with an error that names the
-guarantees at stake. Users can still override a mis-detected class
-explicitly (`ParametricProblem(model; class = …)`).
+**Why `supports` is opt-in.** Each method rests on mathematics with
+hypotheses: DLL's dual completion needs a conic problem, DC3's equality
+completion needs an invertible Jacobian block. Running DLL on a nonconvex
+problem or DC3's correction on nonlinear constraints silently changes what
+the output means. The pipeline therefore refuses unsupported classes up front
+with an error. Users can still override a mis-detected class explicitly
+(`ParametricProblem(model; class = …)`).
 
 **Why the pipeline object.** `L2OPipeline` checks support once, computes the
 decomposition once (which can be expensive: dualisation, Jacobian
@@ -202,20 +193,20 @@ definitions are never ambiguous.
 
 ## Methods at a glance
 
-| method | family | classes (assumptions) | guarantees | reference |
+| method | family | problem classes | what the completion or loss does | reference |
 |:--|:--|:--|:--|:--|
-| `PenaltyMethod` (this package) | primal | `LinearConic`, `ConvexQuadratic` | `NoGuarantee` | soft loss, eq. (2) of Donti et al. 2021 |
-| DLL (`L2ODLL.jl`) | dual | conic (`LinearConic`, `ConvexQuadratic`); Theorem 1 of the paper: for every predicted ``y`` in the dual cone the completion problem (8) is strictly feasible and bounded (e.g. finite variable bounds, strictly convex quadratic objective) | `ValidDualBound` | Tanneau & Van Hentenryck 2024; Klamkin et al. 2024 |
-| DC3 (`L2ODC3.jl`) | primal | equality constraints with an invertible Jacobian block | `EqualityFeasible` (inequalities: only in the limit for linear constraints) | Donti et al. 2021 |
-| ALM / PDL (`L2OALM.jl`) | primal-dual | smooth problems, kernels for batched evaluation | `NoGuarantee` (feasibility encouraged by the augmented Lagrangian) | Park & Van Hentenryck 2023 |
-| LDF (`L2OLDF.jl`) | primal | smooth problems | `NoGuarantee` | Fioretto et al. 2020 |
+| `PenaltyMethod` (this package) | primal | `LinearConic`, `ConvexQuadratic` | soft loss, eq. (2) of the paper; outputs may be infeasible | Donti et al. 2021 |
+| DLL (`L2ODLL.jl`) | dual | conic (`LinearConic`, `ConvexQuadratic`) where, for every predicted ``y`` in the dual cone, the completion problem (8) is strictly feasible and bounded (e.g. finite variable bounds, strictly convex quadratic objective) | completes ``y`` to a dual-feasible point, so its Lagrangian value is a valid dual bound (Theorems 1 and 2 of the paper) | Tanneau & Van Hentenryck 2024; Klamkin et al. 2024 |
+| DC3 (`L2ODC3.jl`) | primal | equality constraints with an invertible Jacobian block | completion solves the equalities exactly; gradient correction reduces inequality violation (converging for linear constraints) | Donti et al. 2021 |
+| ALM / PDL (`L2OALM.jl`) | primal-dual | smooth problems, kernels for batched evaluation | augmented-Lagrangian loss with learned multipliers | Park & Van Hentenryck 2023 |
+| LDF (`L2OLDF.jl`) | primal | smooth problems | Lagrangian-dual loss with multipliers updated by subgradient steps | Fioretto et al. 2020 |
 
-The guarantee column is what each method package's tests must check
-numerically on random instances with `L2OCore.check`.
+Method packages test these properties numerically on random instances
+through `evaluate` (violations, dual bounds compared with solver optima).
 
 ## Evaluation layer, front ends and GPUs
 
-Every loss and check is expressed through the `AbstractEvaluator` functions
+Every loss, completion and evaluation is expressed through the `AbstractEvaluator` functions
 (`batch_objective`, `constraint_values`, `row_violation`, `cone_violation`,
 `dual_bound`). Two backends ship today:
 
@@ -235,7 +226,7 @@ flowchart LR
     X["ExaModels model<br/>(user-written)"] --> E
     E --> BM["BatchNLPKernels.BatchModel"]
     BM --> KE["kernel evaluator<br/>(AbstractEvaluator, package extension)"]
-    KE --> L["losses / completions / checks<br/>on CPU or GPU"]
+    KE --> L["losses / completions / evaluation<br/>on CPU or GPU"]
 ```
 
 - Problems stated in JuMP or directly in ExaModels end up as a parametric
@@ -311,14 +302,13 @@ Datasets and trained proxies are shared under
 | `layouts` | names of parameters, variables, constraints in order | ties columns to model entities |
 | `solver`, `solver_version`, `tolerances` | `HiGHS 1.x`, `primal_feas = 1e-7` | label quality |
 | `labels` | `primal`, `dual`, `objective`, `status`, optional `derivatives: pullback|jacobian` | what can be trained on |
-| `guarantees_satisfied` | `Feasible ≤ 1e-6`, `ValidDualBound` | checked with `L2OCore.check` before upload |
+| `label_quality` | max violation `≤ 1e-6`, dual gap `≤ 1e-6` | measured with `evaluate` before upload |
 | `splits`, `seed` | `train/val/test`, `42` | comparability |
 
 **Model card fields**: `method` (type and hyper-parameters), `proxy`
 (architecture, framework, parameter count), `training_data` (dataset id and
 revision), `metrics` (`EvaluationReport` means on the test split, gap,
-max violation), `guarantees` (from `guarantees(method)` plus their `check`
-results).
+max violation, dual bound where the method predicts duals).
 
 ## Compatibility with the existing API
 

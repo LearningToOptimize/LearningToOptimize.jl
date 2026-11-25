@@ -19,8 +19,8 @@ Documentation for [LearningToOptimize](https://github.com/LearningToOptimize/Lea
 LearningToOptimize.jl trains *optimization proxies*: models that map the parameters of a
 parametric JuMP problem to (near-)optimal primal and/or dual solutions.
 
-- **[Theory](theory.md)** — notation, the Lagrangian dual bound, and the named
-  guarantees checked by the package.
+- **[Theory](theory.md)** — notation, batched evaluation, the Lagrangian dual
+  bound and the penalty method.
 - **[Design](design.md)** — how the ecosystem is organised (`lib/L2OCore`,
   method packages), the type hierarchy, data flow and method lifecycle.
 - **[Getting started](examples/penalty_lp.md)** — train a penalty proxy for a

@@ -1,8 +1,8 @@
 # Theory
 
 This page fixes the notation used across the ecosystem and states the
-mathematical claims that `L2OCore` checks numerically. Each claim has a name
-(in **bold**); tests and future formal proofs refer to the same name.
+mathematics behind the evaluators, the Lagrangian dual bound and the penalty
+method, with references to the papers they come from.
 
 ## Parametric optimization
 
@@ -51,9 +51,10 @@ blocks. Violations are
 \tag{T3}
 ```
 
-**MatrixEvaluatorAgreesWithJuMP**: on random ``(X, P)``, objective,
-constraint values and violations of `MatrixEvaluator` equal those of the
-per-instance `JuMPEvaluator`.
+`MatrixEvaluator` evaluates (T2) and (T3) for a whole batch with sparse
+products; on any ``(X, P)`` its objective, constraint values and violations
+equal those of the per-instance `JuMPEvaluator`, which the tests compare on
+random points.
 
 ## Lagrangian dual bound
 
@@ -69,8 +70,8 @@ for a box row ``y_r \ge 0`` if only the lower side is finite, ``y_r \le 0`` if
 only the upper side is finite, free otherwise. An `Interval` row (not a cone)
 is treated as the pair ``f \ge l`` (multiplier ``\max(y_r,0)``) and
 ``f \le u`` (multiplier ``\min(y_r,0)``), which is the sign convention solvers
-report for its `ConstraintDual`; this is checked numerically (strong duality
-on a QP with an `Interval` row). Writing ``f_r = a_r^\top x + b_r^\top p +
+report for its `ConstraintDual` (strong duality holds with this convention
+on a QP with an `Interval` row, which the tests use as a reference). Writing ``f_r = a_r^\top x + b_r^\top p +
 b^0_r`` for the function value of row ``r`` (all rows, box and conic), the
 Lagrangian of the minimisation form (objective ``s f``) is
 
@@ -96,23 +97,24 @@ and the dual function is ``d(y; p) = \inf_x L(x, y; p)``. With
   this is the MOI dual of a QP, ``-\tfrac12 z^\top Q^{-1} z + b_0 - \sum_i
   y_i^\top b_i`` with ``z = -r``);
 - if ``sQ`` is not positive semidefinite, ``d(y; p) = -\infty`` for every
-  ``y``: no bound is claimed, even when the class was declared
-  `ConvexQuadratic` by hand.
+  ``y``, so `dual_bound` returns ``-\infty`` (``+\infty`` for
+  maximisation), even when the class was declared `ConvexQuadratic` by hand.
 
 `dual_bound(evaluator, Y, P)` returns ``s\, d(y;p)`` together with the dual
 infeasibility (largest of the stationarity residual, sign violations and
 dual-cone distances).
 
-**ValidDualBound** (weak duality). *Assumptions:* ``y`` is dual feasible
-(signs/dual cones as above and ``r(y;p) = 0`` or ``r \in \operatorname{range}
-(sQ)``). *Claim:* ``d(y; p) \le s\,\mathrm{OPT}(p)``, i.e. the returned bound
-is ``\le \mathrm{OPT}(p)`` for minimisation and ``\ge`` for maximisation. No
-convexity is needed: for any feasible ``x``, every subtracted term in (T4) is
-``\ge 0`` by the sign conventions, so ``L(x,y;p) \le s f(x;p)``. Tested on
-random instances by evaluating the optimal duals of one instance at other
-instances (dual feasibility does not depend on right-hand-side parameters),
-and on a strictly convex QP with random sign-feasible duals (every such ``y``
-is dual feasible because ``\operatorname{range}(sQ)`` is everything).
+**Weak duality.** If ``y`` is dual feasible (signs and dual cones as above,
+and ``r(y;p) = 0`` or ``r \in \operatorname{range}(sQ)``), then ``d(y; p) \le
+s\,\mathrm{OPT}(p)``: the returned bound is ``\le \mathrm{OPT}(p)`` for
+minimisation and ``\ge`` for maximisation. No convexity is needed: for any
+feasible ``x``, every subtracted term in (T4) is ``\ge 0`` by the sign
+conventions, so ``L(x,y;p) \le s f(x;p)``. Since dual feasibility does not
+depend on right-hand-side parameters, the optimal duals of one instance give
+a bound at every other instance with the same matrices; for a strictly convex
+QP every sign-feasible ``y`` is dual feasible because
+``\operatorname{range}(sQ)`` is everything. The tests use both facts on
+random instances.
 
 *Tolerance.* Numerically, ``r`` is accepted when ``\|r\|_\infty \le``
 `atol` (or the range residual is). The bound then holds up to the residual:
@@ -121,7 +123,7 @@ s\,\mathrm{OPT}(p) + \|r\|_\infty \|x^\star\|_1`` for any optimal
 ``x^\star``. Methods that need exact bounds (DLL) complete ``y`` so that
 ``r = 0`` holds by construction.
 
-**DLLBoundedCompletionValid**. The DLL paper (Tanneau and Van Hentenryck,
+**Dual completion (DLL).** The DLL paper (Tanneau and Van Hentenryck,
 2024) writes the primal as ``\min c^\top x`` s.t. ``Ax \succeq_{\mathcal K}
 b``, ``Hx \succeq_{\mathcal C} h`` (its eq. (6)) and the dual as ``\max b^\top
 y + h^\top z`` s.t. ``A^\top y + H^\top z = c``, ``y \in \mathcal K^*``,
@@ -134,27 +136,27 @@ exists and ``(\hat y, \hat z)`` is dual feasible (Theorem 2: the optimal
 completion gives the strongest bound for fixed ``\hat y``). For finite
 variable bounds (its Example 1) the completion is ``\hat z^l = |c -
 A^\top \hat y|^+``, ``\hat z^u = |c - A^\top \hat y|^-`` (``\hat z^u \le 0``
-in MOI signs). The tests apply this completion to random ``\hat y`` and check
-`ValidDualBound`, and check that ``\hat y = y^\star`` recovers the optimum.
+in MOI signs). The tests apply this completion to random ``\hat y`` and
+compare the bound with the solver optimum; ``\hat y = y^\star`` recovers the
+optimum.
 
-**StrongDualityAtOptimum**. *Assumptions:* convex class and finite optimal
-value; for LPs and convex QPs with affine constraints nothing else is needed,
-for general cones a constraint qualification (e.g. Slater) is assumed.
-*Claim:* at a primal-dual optimal pair returned by a solver, the bound equals
-the optimal value (to solver tolerance). Tested on LP (min and max), convex
-QP (min, and concave max), a QP with singular PSD Hessian and an SOCP.
+**Strong duality.** For a convex problem with a finite optimal value (LPs
+and convex QPs with affine constraints; for general cones under a constraint
+qualification such as Slater's condition), the bound at a primal-dual optimal
+pair equals the optimal value, up to solver tolerance. The tests compare the
+two on an LP (min and max), a convex QP (min, and concave max), a QP with a
+singular PSD Hessian and an SOCP.
 
-## Guarantees
+## Measuring a prediction
 
-| name | claim on completed predictions, for every instance |
-|:--|:--|
-| `NoGuarantee` | none |
-| `Feasible` | ``\max_r \nu_r \le \varepsilon`` and ``\max_k \nu_k^{\mathrm{cone}} \le \varepsilon`` |
-| `EqualityFeasible` | ``\max_{r:\, l_r = u_r} \nu_r \le \varepsilon`` |
-| `BoundFeasible` | ``\max_{r \in \text{bounds}} \nu_r \le \varepsilon`` |
-| `ValidDualBound` | dual infeasibility ``\le \varepsilon`` and ``s(\text{bound} - \mathrm{OPT}) \le \varepsilon \max(1, |\mathrm{OPT}|)`` |
-
-`check(guarantee, problem, P, prediction; atol = ε)` evaluates these.
+`evaluate(pipe, P, prediction)` returns an `EvaluationReport` with, per
+instance, the objective ``f(\hat x; p)``, the largest violation over all
+constraints (rows and cones, (T3)), the largest violation over equality rows
+(``l_r = u_r``) and over the other constraints, and, for dual predictions,
+``s\,d(\hat y; p)`` and the dual infeasibility. When both a primal and a dual
+prediction are present it also reports the relative gap
+``|f(\hat x;p) - s\,d(\hat y;p)| / \max(1, |f(\hat x;p)|)``. Comparing the
+objective with solver optima gives the optimality gap of a primal proxy.
 
 ## The penalty method
 
@@ -177,15 +179,14 @@ instead. Deviations: none in the formula. Variable bounds are inequalities
 constraints ``g(x) \in \mathcal K``, which eq. (2) does not cover. The loss
 is averaged over the batch (the expectation in the training objective).
 
-**PenaltyLossMatchesDC3Eq2**: the loss equals eq. (2) written out by hand for
-a small LP. **PenaltyLossAtOptimum**: at a feasible point the penalty vanishes
-and the loss equals the mean of ``s f`` (also for maximisation).
-**PenaltyLossGradient**: the Zygote gradient of the batch loss equals central
-finite differences, on an LP and on an SOCP (where the cone distance is
+At a feasible point the penalty terms vanish and the loss equals the mean
+of ``s f`` (also for maximisation). The tests compare the loss with eq. (2)
+written out by hand for a small LP, and its Zygote gradient with central
+finite differences on an LP and on an SOCP (where the cone distance is
 active).
 
-*Guarantee:* none. As the DC3 paper notes, soft losses do not enforce the
-constraints and can give infeasible outputs; use a completion method when
+As the DC3 paper notes, soft losses do not enforce the constraints and can
+give infeasible outputs; use a method with a completion step when
 feasibility matters.
 
 ## References
