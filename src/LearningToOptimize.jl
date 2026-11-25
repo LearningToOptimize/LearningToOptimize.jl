@@ -1,5 +1,6 @@
 module LearningToOptimize
 
+import L2OCore
 using Arrow
 using CSV
 using DataFrames
@@ -58,5 +59,17 @@ include("metrics.jl")
 include("inconvexhull.jl")
 include("samplers.jl")
 include("model_evaluator.jl")
+include("penalty.jl")
+
+export PenaltyMethod, train_flux!
+
+# Re-export the L2OCore interface so `using LearningToOptimize` is enough for
+# end users. Names are imported explicitly, so they take precedence over
+# same-named exports of other packages used internally (e.g. `MLJ.evaluate`).
+for name in names(L2OCore)
+    name === :L2OCore && continue
+    @eval using L2OCore: $name
+    @eval export $name
+end
 
 end
