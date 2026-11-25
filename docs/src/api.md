@@ -1,7 +1,7 @@
-# Api
-## LearningToOptimize
+# LearningToOptimize API
 
-```@index
+```@meta
+CurrentModule = LearningToOptimize
 ```
 
 ```@autodocs

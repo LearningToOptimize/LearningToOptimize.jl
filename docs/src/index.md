@@ -7,16 +7,28 @@ CurrentModule = LearningToOptimize
         border-color:#000;border-radius:10px;text-align:center;background-color:#99DDFF;
         color:#000">
     <h3 style="color: black;">Star us on GitHub!</h3>
-    <a class="github-button" href="https://github.com/andrewrosemberg/LearningToOptimize.jl" data-icon="octicon-star" data-size="large" data-show-count="true" aria-label="Star andrewrosemberg/LearningToOptimize.jl on GitHub" style="margin:auto">Star</a>
+    <a class="github-button" href="https://github.com/LearningToOptimize/LearningToOptimize.jl" data-icon="octicon-star" data-size="large" data-show-count="true" aria-label="Star LearningToOptimize/LearningToOptimize.jl on GitHub" style="margin:auto">Star</a>
     <script async defer src="https://buttons.github.io/buttons.js"></script>
 </div>
 ```
 
 # LearningToOptimize
 
-Documentation for [LearningToOptimize](https://github.com/andrewrosemberg/LearningToOptimize.jl).
+Documentation for [LearningToOptimize](https://github.com/LearningToOptimize/LearningToOptimize.jl).
 
-Learning to optimize (LearningToOptimize) package that provides basic functionalities to help fit proxy models for optimization.
+LearningToOptimize.jl trains *optimization proxies*: models that map the parameters of a
+parametric JuMP problem to (near-)optimal primal and/or dual solutions.
+
+- **[Theory](theory.md)** — notation, the Lagrangian dual bound, and the named
+  guarantees checked by the package.
+- **[Design](design.md)** — how the ecosystem is organised (`lib/L2OCore`,
+  method packages), the type hierarchy, data flow and method lifecycle.
+- **[Getting started](examples/penalty_lp.md)** — train a penalty proxy for a
+  small LP in seconds.
+- **[Adding a method](guide/extending.md)** — what a method package implements.
+
+The sections below describe the solver-labelled dataset generation API
+(`ProblemIterator`, recorders, samplers).
 
 ## Installation
 
