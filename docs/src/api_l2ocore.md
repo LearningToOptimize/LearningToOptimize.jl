@@ -7,6 +7,10 @@ CurrentModule = L2OCore
 `L2OCore` lives in `lib/L2OCore` of this repository. All of its exported
 names are re-exported by `LearningToOptimize`.
 
+```@docs
+L2OCore
+```
+
 ## Methods and proxies
 
 ```@docs
