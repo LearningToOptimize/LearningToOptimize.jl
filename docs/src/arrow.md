@@ -6,13 +6,13 @@ The package provides tools to work with Arrow files efficiently, allowing users 
 ```julia
 output_file = joinpath(save_path, "$(case_name)_output_$(batch_id)")
 recorder = Recorder{filetype}(output_file)
-successfull_solves = solve_batch(problem_iterator, recorder)
+successful_solves = solve_batch(problem_iterator, recorder)
 ```
 
 #### **Compressing Arrow Files**
 
 Since appending data to Arrow files is slow and inefficient, 
-each instance of data is stored in a separate file. Thefore, in this case, the output files will look like this:
+each instance of data is stored in a separate file. Therefore, in this case, the output files will look like this:
 
 ```
 <case_name>_output_<batch_id>_<instance_1_id>.arrow

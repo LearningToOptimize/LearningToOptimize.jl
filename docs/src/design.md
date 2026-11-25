@@ -19,7 +19,7 @@ graph TD
     DLL["L2ODLL.jl<br/>dual Lagrangian learning"]
     DC3["L2ODC3.jl<br/>completion + correction"]
     ALM["L2OALM.jl<br/>primal-dual ALM"]
-    LDF["L2OLDF.jl<br/>Lagrangian dual framework"]
+    LDF["LDF (planned)<br/>Lagrangian dual framework"]
     BNK["BatchNLPKernels.jl<br/>ExaModels kernels"]
     MAIN --> CORE
     DATA -.-> CORE
@@ -36,7 +36,7 @@ graph TD
 |:--|:--|:--|
 | `L2OCore` (`lib/L2OCore`) | method hierarchy, problem classes, `ParametricProblem`, evaluators, datasets, method-dispatched pipeline | JuMP, MathOptInterface, LinearAlgebra, SparseArrays, Random |
 | `LearningToOptimize` | the penalty method, Flux training loop, existing dataset generation (`ProblemIterator`, recorders, samplers), `FullyConnected` models; re-exports `L2OCore` | `L2OCore` + ML and file-format stack |
-| method packages (`L2ODLL`, `L2ODC3`, `L2OALM`, `L2OLDF`, …) | one method family member each | `L2OCore` only (plus what the method itself needs) |
+| method packages (`L2ODLL`, `L2ODC3`, `L2OALM`, …) | one method family member each | `L2OCore` only (plus what the method itself needs) |
 | `L2OKernels` (planned) | batched GPU evaluators as an `AbstractEvaluator` backend | ExaModels / BatchNLPKernels, loaded as a package extension |
 
 **Why a `lib/` subpackage instead of a separate repository?** The core and
@@ -199,7 +199,7 @@ definitions are never ambiguous.
 | DLL (`L2ODLL.jl`) | dual | conic (`LinearConic`, `ConvexQuadratic`) where, for every predicted ``y`` in the dual cone, the completion problem (8) is strictly feasible and bounded (e.g. finite variable bounds, strictly convex quadratic objective) | completes ``y`` to a dual-feasible point, so its Lagrangian value is a valid dual bound (Theorems 1 and 2 of the paper) | Tanneau & Van Hentenryck 2024; Klamkin et al. 2024 |
 | DC3 (`L2ODC3.jl`) | primal | equality constraints with an invertible Jacobian block | completion solves the equalities exactly; gradient correction reduces inequality violation (converging for linear constraints) | Donti et al. 2021 |
 | ALM / PDL (`L2OALM.jl`) | primal-dual | smooth problems, kernels for batched evaluation | augmented-Lagrangian loss with learned multipliers | Park & Van Hentenryck 2023 |
-| LDF (`L2OLDF.jl`) | primal | smooth problems | Lagrangian-dual loss with multipliers updated by subgradient steps | Fioretto et al. 2020 |
+| LDF (planned) | primal | smooth problems | Lagrangian-dual loss with multipliers updated by subgradient steps | Fioretto et al. 2020 |
 
 Method packages test these properties numerically on random instances
 through `evaluate` (violations, dual bounds compared with solver optima).
@@ -302,7 +302,7 @@ Datasets and trained proxies are shared under
 |:--|:--|:--|
 | `problem_id`, `problem_version` | `pglib_opf_case5_pjm/DCPPowerModel`, `1.0` | reproducible problem identity |
 | `problem_file` | `.mof.json` with parameters | the JuMP model, readable by `MOI.FileFormats` |
-| `parameter_sampler` | `{"type": "ScaledSampler", "low": 0.8, "high": 1.2}` (issue #32) | inputs distribution, needed to generate more data |
+| `parameter_sampler` | `{"type": "ScaledSampler", "low": 0.8, "high": 1.2}` ([#32](https://github.com/LearningToOptimize/LearningToOptimize.jl/issues/32)) | inputs distribution, needed to generate more data |
 | `layouts` | names of parameters, variables, constraints in order | ties columns to model entities |
 | `solver`, `solver_version`, `tolerances` | `HiGHS 1.x`, `primal_feas = 1e-7` | label quality |
 | `labels` | `primal`, `dual`, `objective`, `status`, optional `derivatives: pullback|jacobian` | what can be trained on |
@@ -326,7 +326,7 @@ re-exported. Names that collide with other packages commonly loaded together
 ## Planned work
 
 - Move `ProblemIterator`, recorders and file formats to `lib/L2OData.jl`
-  once `L2ODataset` I/O is designed (issue #12), so the main package can drop
+  once `L2ODataset` I/O is designed ([#12](https://github.com/LearningToOptimize/LearningToOptimize.jl/issues/12)), so the main package can drop
   Arrow/CSV/DataFrames for users who only train.
-- Kernel evaluator extension and the ExaModels front end (issue #33).
-- Graph encoders from the problem structure (issue #29).
+- Kernel evaluator extension and the ExaModels front end ([#33](https://github.com/LearningToOptimize/LearningToOptimize.jl/issues/33)).
+- Graph encoders from the problem structure ([#29](https://github.com/LearningToOptimize/LearningToOptimize.jl/issues/29)).

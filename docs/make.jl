@@ -35,6 +35,7 @@ makedocs(;
         "Package guide" => [
             "Getting started" => "examples/penalty_lp.md",
             "Adding a method" => "guide/extending.md",
+            "Dataset generation: solver labels" => "datasetgen.md",
             "Dataset generation: file formats" => "arrow.md",
             "Dataset generation: parameter types" => "parametertype.md",
         ],
