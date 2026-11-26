@@ -28,6 +28,8 @@ AbstractDerivativeMask
 DenseMask
 RandomMask
 FixedMask
+RandomColumnMask
+RandomRowMask
 sample_mask
 ```
 
@@ -58,8 +60,10 @@ sensitivity_labels
 label_errors
 ```
 
-## Approximation diagnostics
+## Approximation diagnostics and evaluation
 
 ```@docs
 covering_radius
+proxy_metrics
+max_infeasibility_reduction
 ```

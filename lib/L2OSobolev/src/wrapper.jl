@@ -122,7 +122,8 @@ end
     generate_data(::SobolevRegularized, pipe; sampler, n, rng = Random.default_rng(),
                   optimizer = nothing, oracle = DiffOptSensitivities(optimizer),
                   drop_failed = true, consistency_atol = 1e-4,
-                  consistency_rtol = 1e-4, kwargs...)
+                  consistency_rtol = 1e-4, max_label_error = Inf,
+                  fd_step = 1e-5, kwargs...)
 
 Dataset of the wrapped method (same `sampler`, `n`, `rng`, `optimizer`,
 `kwargs`) with derivative labels of `w.directions` from `oracle` attached as
@@ -132,6 +133,14 @@ records them) differ from the oracle's solution by more than
 `consistency_atol + consistency_rtol * ‖x‖_∞` in the max norm (a different
 local optimum would make value and derivative labels describe different
 solution branches). The number of dropped samples is stored in `ds.metadata["sobolev_dropped"]`.
+
+With a finite `max_label_error`, the labels are also verified against central
+finite differences of the solver map ([`label_errors`](@ref) with `step =
+fd_step`, `2d` extra solves per sample) and samples whose relative error
+exceeds it are dropped: these are the **degenerate samples** (weakly active
+constraints, active-set changes within `± fd_step`) where the solution map is
+not differentiable and the KKT sensitivities of eq. (1) of the paper are not
+its derivative. Their number is stored in `ds.metadata["sobolev_degenerate"]`.
 """
 function L2OCore.generate_data(
     w::SobolevRegularized,
@@ -144,6 +153,8 @@ function L2OCore.generate_data(
     drop_failed::Bool = true,
     consistency_atol::Real = 1e-4,
     consistency_rtol::Real = 1e-4,
+    max_label_error::Real = Inf,
+    fd_step::Real = 1e-5,
     kwargs...,
 )
     ds = L2OCore.generate_data(
@@ -168,7 +179,19 @@ function L2OCore.generate_data(
         scale = vec(maximum(abs.(ds.primal); dims = 1))
         ok .&= gap .<= consistency_atol .+ consistency_rtol .* scale
     end
+    degenerate = falses(length(ok))
+    if isfinite(max_label_error)
+        optimizer === nothing && throw(
+            ArgumentError(
+                "`max_label_error` needs `optimizer` for the finite-difference check",
+            ),
+        )
+        errs = label_errors(r.labels, pipe.problem, ds.inputs; optimizer, step = fd_step)
+        degenerate .= ok .& .!(errs .<= max_label_error)        # NaN errors count as degenerate
+        ok .&= .!degenerate
+    end
     out = L2OCore.with_derivatives(ds, r.labels)
+    isfinite(max_label_error) && (out.metadata["sobolev_degenerate"] = count(degenerate))
     out.metadata["sobolev_directions"] = string(w.directions)
     out.metadata["sobolev_oracle"] = string(nameof(typeof(oracle)))
     out.metadata["sobolev_dropped"] = drop_failed ? count(!, ok) : 0

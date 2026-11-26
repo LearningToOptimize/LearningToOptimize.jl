@@ -137,6 +137,19 @@ uniformly on the unit sphere, since then ``\mathbb E[w w^⊤] = I/n`` (and
 dense loss in expectation over the labeling, and a random mask on top of them
 keeps this property.
 
+**Structured masks.** A mask that keeps ``k`` of the ``d`` columns of the
+Jacobian uniformly at random
+([`RandomColumnMask`](@ref L2OSobolev.RandomColumnMask)) keeps each entry with
+probability ``k/d``; one that keeps ``k`` of the ``n`` rows
+([`RandomRowMask`](@ref L2OSobolev.RandomRowMask)) with probability ``k/n``.
+Every mask of either kind has the same ``\|\mathcal M\|_0`` (``kn`` or ``kd``),
+so normalizing by it as in (S5) again gives the dense loss (S6) in expectation.
+With full-Jacobian labels, only the selected columns ``D\hat g_θ e_j`` (``k``
+Jacobian–vector products) or rows ``e_i^⊤ D\hat g_θ`` (``k`` vector–Jacobian
+products) of the proxy are needed. The loss computes only those, except for
+row masks with `CentralDifferences`, which differentiates column by column and
+therefore computes the full Jacobian.
+
 ### Composition with other methods
 
 [R26] describes the value term of (S4) as interchangeable: the derivative term
@@ -225,7 +238,8 @@ derivative supervision only helps when neighbouring sensitivities are similar.
   boundary): no derivative exists; the KKT matrix is singular or the result is
   one one-sided derivative. [`label_errors`](@ref L2OSobolev.label_errors)
   compares labels with central differences of the solver map and flags such
-  samples (for example an LP sampled at a kink).
+  samples (for example an LP sampled at a kink), and
+  `generate_data(...; max_label_error)` drops them.
 - **Non-unique or local solutions** (dual-degenerate LPs, nonconvex NLPs): the
   derivative may belong to another solution branch than the value label.
   `generate_data` drops samples whose oracle solution differs from the value

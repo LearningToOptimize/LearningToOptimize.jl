@@ -185,19 +185,27 @@ function _to_like(like::AbstractArray, A::AbstractArray)
     return D
 end
 
-# d × (d·B) matrix whose j-th block of B columns is the unit vector e_j.
-_unit_blocks(P::AbstractMatrix, B::Integer) = _seed_blocks(P, size(P, 1), size(P, 1), B)
-
-# m × (k·B) matrix (element type and device of `like`) whose j-th block of B
-# columns is the unit vector e_j ∈ ℝᵐ, for j = 1, …, k ≤ m.
-function _seed_blocks(like::AbstractArray, m::Integer, k::Integer, B::Integer)
+# m × (k·B) matrix whose j-th block of B columns is the unit vector e_{idx[j]}
+# (on the device of `like`).
+function _unit_blocks(
+    like::AbstractArray,
+    m::Integer,
+    idx::AbstractVector{<:Integer},
+    B::Integer,
+)
     T = eltype(like)
-    E = zeros(T, m, k * B)
-    for j = 1:k
-        E[j, ((j-1)*B+1):(j*B)] .= one(T)
+    E = zeros(T, m, length(idx) * B)
+    for (j, i) in enumerate(idx)
+        E[i, ((j-1)*B+1):(j*B)] .= one(T)
     end
     return _to_like(like, E)
 end
+_unit_blocks(P::AbstractMatrix, B::Integer) = _unit_blocks(P, size(P, 1), 1:size(P, 1), B)
+
+# m × (k·B) seeds e_1, …, e_k ∈ ℝᵐ (first k output rows), as used by the
+# Zygote backend.
+_seed_blocks(like::AbstractArray, m::Integer, k::Integer, B::Integer) =
+    _unit_blocks(like, m, 1:k, B)
 
 # Number of output rows of the column-wise map `f` (one forward pass on one column).
 _output_rows(f, P::AbstractMatrix) = size(f(P[:, 1:1]), 1)

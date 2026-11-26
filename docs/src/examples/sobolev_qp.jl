@@ -133,3 +133,37 @@ masked = SobolevRegularized(
 )
 sm = train_proxy(masked, train)
 mean(abs2, sm(Xt) .- test.primal)
+
+# A **column mask** matches whole columns of the Jacobian and only computes the
+# corresponding Jacobian–vector products of the proxy (here 1 of 3 per update):
+
+columns = SobolevRegularized(
+    plain;
+    weight = 1.0,
+    mask = RandomColumnMask(1),
+    backend = LuxNestedAD(),
+)
+sm_columns = train_proxy(columns, train)
+mean(abs2, sm_columns(Xt) .- test.primal)
+
+# ## Feasibility metrics of the paper
+#
+# [`proxy_metrics`](@ref L2OSobolev.proxy_metrics) computes the per-instance
+# MSE, optimality gap and average infeasibility (INF) used in the paper's
+# experiments; here the only violated constraint of a proxy prediction is the
+# budget equality. [`max_infeasibility_reduction`](@ref L2OSobolev.max_infeasibility_reduction)
+# (RMI) compares the worst violation per instance (positive = the Sobolev proxy
+# is more feasible).
+# Relative gaps are large for both proxies in this toy problem because many
+# optimal objective values are close to zero.
+
+Xt64 = Float64.(Xt)
+bench = proxy_metrics(pipe, Xt64, Float64.(proxies["plain"](Xt)); reference = test)
+sob = proxy_metrics(pipe, Xt64, Float64.(proxies["Sobolev"](Xt)); reference = test)
+(
+    gap_plain = mean(bench.gap),
+    gap_sobolev = mean(sob.gap),
+    inf_plain = mean(bench.inf),
+    inf_sobolev = mean(sob.inf),
+    median_rmi = median(max_infeasibility_reduction(bench, sob)),
+)
