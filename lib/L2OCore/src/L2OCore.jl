@@ -43,6 +43,7 @@ include("support.jl")
 include("data.jl")
 include("pipeline.jl")
 include("supervised.jl")
+include("repair.jl")
 
 # Method hierarchy and proxies
 export AbstractL2OMethod,
@@ -119,5 +120,7 @@ export AbstractDecomposition,
     inner_method,
     extra_loss,
     SupervisedMSE
+# Repair layers
+export BoundedOutput, bound_transform, ProjectionRepair, project_onto_feasible_set
 
 end # module L2OCore

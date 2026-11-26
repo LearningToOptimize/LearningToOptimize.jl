@@ -189,8 +189,60 @@ As the DC3 paper notes, soft losses do not enforce the constraints and can
 give infeasible outputs; use a method with a completion step when
 feasibility matters.
 
+## Repair layers
+
+Repair layers are method wrappers: they change how a raw prediction is turned
+into a completed one, and therefore which constraints the completed
+prediction satisfies, independently of the method that trained the proxy.
+
+**Bounded output.** `BoundedOutput(inner; mode)` maps the primal block ``z``
+of the raw output into the box ``l \le x \le u`` declared on the variables,
+before both the loss and the completion of the inner method:
+
+```math
+\beta(z)_j = \begin{cases}
+l_j + (u_j - l_j)\,\sigma(z_j) & l_j, u_j \text{ finite} \\
+l_j + \operatorname{softplus}(z_j) & \text{only } l_j \text{ finite} \\
+u_j - \operatorname{softplus}(-z_j) & \text{only } u_j \text{ finite} \\
+z_j & \text{free}
+\end{cases}
+\qquad\text{or}\qquad
+\beta(z) = \min(\max(z, l), u) = \Pi_{[l,u]}(z).
+\tag{T6}
+```
+
+By construction ``l \le \beta(z) \le u`` for every ``z``. The smooth map
+is strictly increasing in each coordinate, so it has no zero-gradient
+region; the clamp is the Euclidean projection onto the box (the identity on
+the box, and nonexpansive) but its gradient vanishes outside the box.
+Changing ``x`` can break other primal constraints of the inner method (e.g.
+equalities), while dual predictions, and hence their dual bounds, are
+untouched.
+
+**Projection repair.** `ProjectionRepair(inner, optimizer)` replaces the
+primal prediction ``\hat x`` by
+
+```math
+\Pi_{\mathcal F(p)}(\hat x) = \arg\min_{x \in \mathcal F(p)} \|x - \hat x\|_2^2,
+\tag{T7}
+```
+
+solved per instance by a convex solver at inference; training is unchanged.
+For a convex class with ``\mathcal F(p) \neq \emptyset``, ``\mathcal F(p)``
+is closed and convex, so (T7) has a unique solution, which is feasible up to
+the solver's tolerance. The projection onto a closed convex set is (firmly)
+nonexpansive (see, e.g., Bauschke and Combettes, *Convex Analysis and
+Monotone Operator Theory in Hilbert Spaces*, Ch. 4), so for every feasible
+``x``, in particular every optimal ``x^\star``, ``\|\Pi(\hat x) - x\| \le
+\|\hat x - x\|``: repair never moves a prediction away from the optimum.
+Feasible predictions are unchanged (to solver accuracy). The objective value
+need not improve. Projection layers are one of the remedies for infeasible proxies
+discussed in the survey of Kotary et al. (2021).
+
 ## References
 
+- H. H. Bauschke, P. L. Combettes. *Convex Analysis and Monotone Operator
+  Theory in Hilbert Spaces.* Springer, 2nd ed., 2017.
 - P. L. Donti, D. Rolnick, J. Z. Kolter. *DC3: A learning method for
   optimization with hard constraints.* ICLR 2021. arXiv:2104.12225.
 - J. Kotary, F. Fioretto, P. Van Hentenryck, B. Wilder. *End-to-End

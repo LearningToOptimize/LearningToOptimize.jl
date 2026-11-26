@@ -108,3 +108,15 @@ complete
 loss
 train_proxy!
 ```
+
+## Repair layers
+
+```@docs
+BoundedOutput
+bound_transform
+L2OCore.BoundedOutputDecomposition
+ProjectionRepair
+project_onto_feasible_set
+L2OCore.ProjectionDecomposition
+```
+

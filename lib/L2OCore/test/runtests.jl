@@ -9,5 +9,6 @@ include("problems.jl")
     @testset "evaluators" include("test_evaluators.jl")
     @testset "feasibility and dual bounds" include("test_properties.jl")
     @testset "pipeline" include("test_pipeline.jl")
+    @testset "repair layers" include("test_repair.jl")
     @testset "code quality" include("test_quality.jl")
 end
