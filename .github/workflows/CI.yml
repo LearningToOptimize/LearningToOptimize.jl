@@ -29,6 +29,7 @@ jobs:
         package:
           - LearningToOptimize
           - L2OCore
+          - L2OSobolev
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
@@ -44,12 +45,19 @@ jobs:
           using Pkg
           Pkg.develop(PackageSpec(path = "lib/L2OCore"))
           Pkg.instantiate()
+      - name: Develop L2OCore into lib/L2OSobolev
+        if: matrix.package == 'L2OSobolev'
+        shell: julia --color=yes --project=lib/L2OSobolev {0}
+        run: |
+          using Pkg
+          Pkg.develop(PackageSpec(path = "lib/L2OCore"))
+          Pkg.instantiate()
       - uses: julia-actions/julia-runtest@v1
         with:
-          project: ${{ matrix.package == 'L2OCore' && 'lib/L2OCore' || '.' }}
+          project: ${{ matrix.package == 'LearningToOptimize' && '.' || format('lib/{0}', matrix.package) }}
       - uses: julia-actions/julia-processcoverage@v1
         with:
-          directories: src,lib/L2OCore/src
+          directories: src,lib/L2OCore/src,lib/L2OSobolev/src,lib/L2OSobolev/ext
       - uses: codecov/codecov-action@v5
         with:
           files: lcov.info

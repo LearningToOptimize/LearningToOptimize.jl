@@ -115,6 +115,26 @@ covers samplers, Arrow files and training Flux or MLJ models on the saved data.
 
 How the pieces fit, and how to add a method, is explained in the [design page](https://LearningToOptimize.github.io/LearningToOptimize.jl/dev/design/).
 
+## Derivative (Sobolev) supervision
+
+[`lib/L2OSobolev`](lib/L2OSobolev) adds masked Sobolev training
+([Rosemberg et al., NeurIPS 2026](https://andrewrosemberg.github.io/NeurIPS2026-Masked-Sobolev-Optimization-Proxies/))
+to any method: the proxy also matches randomly selected entries of the solver sensitivities ∂x*/∂p,
+obtained by implicit differentiation of the KKT conditions with DiffOpt.jl.
+
+```julia
+using L2OCore, L2OSobolev
+method = SobolevRegularized(SupervisedMSE(); weight = 1.0, mask = RandomMask(0.1), backend = LuxNestedAD())
+```
+
+wraps value supervision; any other primal or primal-dual method can be wrapped the same way. Install it with
+`Pkg.add(url = "https://github.com/LearningToOptimize/LearningToOptimize.jl", subdir = "lib/L2OSobolev")` after
+L2OCore. A complete, runnable example with Lux is in the [L2OSobolev README](lib/L2OSobolev/README.md); for
+Flux models use `backend = ZygoteNestedAD()`.
+
+See the [Sobolev theory page](https://LearningToOptimize.github.io/LearningToOptimize.jl/dev/sobolev/theory/) and
+the [package guide](https://LearningToOptimize.github.io/LearningToOptimize.jl/dev/sobolev/guide/).
+
 ## Background
 
 Parametric optimization problems arise when certain elements (e.g., coefficients, constraints) may vary according to problem parameters. A general form of a parameterized convex optimization problem is 

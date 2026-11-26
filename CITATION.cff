@@ -13,3 +13,18 @@ keywords:
   - amortized optimization
   - JuMP
   - Julia
+references:
+  - type: conference-paper
+    title: "Masked Sobolev Training for Feasibility-Reliable Optimization Proxies"
+    authors:
+      - family-names: Rosemberg
+        given-names: Andrew W.
+      - family-names: Dias Garcia
+        given-names: Joaquim
+      - family-names: Bent
+        given-names: Russell
+      - family-names: Van Hentenryck
+        given-names: Pascal
+    collection-title: "Advances in Neural Information Processing Systems"
+    year: 2026
+    notes: "Method implemented by lib/L2OSobolev."
