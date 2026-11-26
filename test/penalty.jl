@@ -3,9 +3,10 @@
 module PenaltyTests
 
 using Test, JuMP, Random, Flux, HiGHS
+using LinearAlgebra: norm
 using LearningToOptimize
 
-export test_penalty_method, test_penalty_loss_definition
+export test_penalty_method, test_penalty_loss_definition, test_penalty_with_repair_layers
 
 function penalty_test_lp()
     model = Model()
@@ -135,6 +136,46 @@ function test_penalty_loss_definition()
         @constraint(mbad, q * z >= 1)
         @objective(mbad, Min, z)
         @test_throws ArgumentError L2OPipeline(ParametricProblem(mbad), PenaltyMethod())
+    end
+end
+
+
+function test_penalty_with_repair_layers()
+    @testset "PenaltyMethod + BoundedOutput + ProjectionRepair" begin
+        rng = Random.MersenneTwister(44)
+        prob = ParametricProblem(penalty_test_lp())
+        sampler = BoxSampler([0.5, 1.0], [1.5, 2.0])
+        bounded = BoundedOutput(PenaltyMethod(; ρ_eq = 20.0, ρ_ineq = 20.0))
+        pipe = L2OPipeline(prob, bounded)
+        data = generate_data(pipe; sampler, n = 64, rng)
+        @test data.primal === nothing   # still self-supervised
+        ref = generate_data(pipe; sampler, n = 16, rng, optimizer = HiGHS.Optimizer)
+        model = Flux.f64(Chain(Dense(2 => 32, relu), Dense(32 => 3)))
+        hist = train_flux!(
+            pipe,
+            model,
+            data;
+            epochs = 150,
+            batchsize = 16,
+            rng,
+            optimiser = Flux.Optimisers.Adam(1e-2),
+        )
+        @test hist[end] < hist[1]
+        pred = complete(pipe, ref.inputs, model(ref.inputs))
+        # The bounded output layer satisfies the variable bounds exactly, even
+        # though the penalty proxy is not feasible overall.
+        ev = default_evaluator(prob)
+        bnd = LearningToOptimize.L2OCore.bound_rows(ev)
+        @test maximum(row_violation(ev, pred.primal, ref.inputs)[bnd, :]) <= 0
+
+        # Repair at inference: same trained proxy, projected onto the feasible set.
+        repaired = L2OPipeline(prob, ProjectionRepair(bounded, HiGHS.Optimizer))
+        fixed = complete(repaired, ref.inputs, model(ref.inputs))
+        @test all(evaluate(prob, ref.inputs, fixed).max_violation .<= 1e-6)
+        @test all(
+            norm(fixed.primal[:, k] - ref.primal[:, k]) <=
+            norm(pred.primal[:, k] - ref.primal[:, k]) + 1e-6 for k = 1:16
+        )
     end
 end
 

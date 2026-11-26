@@ -207,6 +207,17 @@ definitions are never ambiguous.
 Method packages test these properties numerically on random instances
 through `evaluate` (violations, dual bounds compared with solver optima).
 
+## Repair layers
+
+`BoundedOutput` and `ProjectionRepair` are `AbstractMethodWrapper`s that
+work with *any* primal method: the first is an output layer used during
+training and inference that keeps predictions inside the variable bounds,
+the second a projection onto the feasible set at inference (convex classes
+only). Because they are wrappers, they forward the loss and completion to
+the inner method, leave dual predictions untouched, and tighten the support
+check (`ProjectionRepair` refuses non-convex classes even if the inner
+method accepts them).
+
 ## Evaluation layer, front ends and GPUs
 
 Every loss, completion and evaluation is expressed through the `AbstractEvaluator` functions

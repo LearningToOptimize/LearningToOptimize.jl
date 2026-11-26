@@ -81,3 +81,40 @@ maximum(report.max_equality_violation), maximum(report.max_inequality_violation)
 # are the ones that restore feasibility or dual feasibility exactly.
 
 count(<=(1e-2), report.max_violation) / 32
+
+# ## Repair layers
+#
+# Repair layers wrap any primal method. `BoundedOutput` maps the network
+# output into the variable bounds during training and inference, so the
+# bounds hold by construction. Here the only inequalities are the capacity
+# bounds, so their largest violation is exactly zero:
+
+bounded = BoundedOutput(method)
+bpipe = L2OPipeline(problem, bounded)
+bproxy = Flux.f64(Chain(Dense(2 => 32, relu), Dense(32 => 3)))
+train_flux!(
+    bpipe,
+    bproxy,
+    train;
+    epochs = 200,
+    batchsize = 32,
+    rng,
+    optimiser = Flux.Optimisers.Adam(1e-2),
+)
+bpred = complete(bpipe, test.inputs, bproxy(test.inputs))
+maximum(evaluate(pipe, test.inputs, bpred).max_inequality_violation)
+
+# `ProjectionRepair` projects the prediction onto the feasible set of each
+# instance at inference time (a small QP per instance). The result is feasible
+# up to the solver tolerance, and since the projection onto a convex set is
+# nonexpansive it is never farther from the optimal solution than the raw
+# prediction:
+
+repaired = L2OPipeline(problem, ProjectionRepair(bounded, HiGHS.Optimizer))
+rpred = complete(repaired, test.inputs, bproxy(test.inputs))
+maximum(evaluate(pipe, test.inputs, rpred).max_violation)
+
+# Mean optimality gap before and after the repair:
+
+gap(pred) = sum(abs.(evaluate(pipe, test.inputs, pred).objective .- test.objective)) / 32
+gap(bpred), gap(rpred)
