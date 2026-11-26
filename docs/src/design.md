@@ -13,6 +13,7 @@ graph TD
     subgraph "LearningToOptimize.jl (this repository)"
         CORE["lib/L2OCore.jl<br/>interfaces, problem wrapper,<br/>evaluators, datasets"]
         MAIN["LearningToOptimize.jl<br/>penalty method, Flux training,<br/>dataset files, samplers, models"]
+        SOB["lib/L2OSobolev.jl<br/>derivative (Sobolev) supervision<br/>for any method"]
         DATA["lib/L2OData.jl (planned)<br/>dataset file formats"]
         KERN["lib/L2OKernels.jl (planned)<br/>batched GPU evaluators"]
     end
@@ -22,6 +23,7 @@ graph TD
     LDF["LDF (planned)<br/>Lagrangian dual framework"]
     BNK["BatchNLPKernels.jl<br/>ExaModels kernels"]
     MAIN --> CORE
+    SOB --> CORE
     DATA -.-> CORE
     KERN -.-> CORE
     KERN -.-> BNK
@@ -36,6 +38,7 @@ graph TD
 |:--|:--|:--|
 | `L2OCore` (`lib/L2OCore`) | method hierarchy, problem classes, `ParametricProblem`, evaluators, datasets, method-dispatched pipeline | JuMP, MathOptInterface, LinearAlgebra, SparseArrays, Random |
 | `LearningToOptimize` | the penalty method, Flux training loop, existing dataset generation (`ProblemIterator`, recorders, samplers), `FullyConnected` models; re-exports `L2OCore` | `L2OCore` + ML and file-format stack |
+| `L2OSobolev` (`lib/L2OSobolev`) | method-agnostic Sobolev (derivative) supervision: `SobolevRegularized` wrapper, masks, derivative labels from DiffOpt | `L2OCore`, ChainRulesCore; DiffOpt and Lux as package extensions |
 | method packages (`L2ODLL`, `L2ODC3`, `L2OALM`, …) | one method family member each | `L2OCore` only (plus what the method itself needs) |
 | `L2OKernels` (planned) | batched GPU evaluators as an `AbstractEvaluator` backend | ExaModels / BatchNLPKernels, loaded as a package extension |
 
@@ -264,6 +267,11 @@ respect to the weights. We measured which combinations give correct gradients
 | Flux | Zygote | Zygote | correct |
 | Flux | ForwardDiff | Zygote | correct |
 | Lux or Flux | Zygote | ForwardDiff | **silently wrong** (`nothing` gradient) |
+| Lux, helpers applied to a closure around the layer | Zygote | `Lux.vector_jacobian_product` / `jacobian_vector_product` | error (mutation / dual-tag ordering) |
+| Lux (`StatefulLuxLayer`) | Zygote | `Lux.batched_jacobian(…, AutoForwardDiff())` | correct |
+| any callable | Zygote | central differences of forward passes | correct to ``O(h^2)`` (≈1e-8 relative in Float64) |
+| Flux `Chain` (Jacobian, pushforward, pullback of the raw proxy) | Zygote | Zygote pullbacks (`ZygoteNestedAD`) | correct |
+| completion layer (keyword constructors, branches) | Zygote | Zygote | error (Zygote's second-order compilation) |
 
 Measured with Lux 1.32, Flux 0.16, Zygote 0.7, ForwardDiff 1.5 and a recent
 Enzyme on a `Dense(3→8, tanh) → Dense(8→2)` network with Float64 weights
@@ -290,6 +298,13 @@ Decision:
 - never put `ForwardDiff` inside a Zygote-differentiated loss for
   parameter gradients: Zygote treats the inner call as constant and returns
   `nothing` without an error.
+
+`lib/L2OSobolev` follows this decision: `LuxNestedAD()` (exact, Lux helpers on
+the `StatefulLuxLayer` itself), `ZygoteNestedAD()` (exact, Zygote pullbacks of
+a Flux model or any Zygote-differentiable callable) and `CentralDifferences()`
+(any callable proxy, also through completion layers), all checked against
+finite differences of the weight gradient in its test suite, with a Flux and a
+Lux training run.
 
 ## Datasets and trained models on the Hugging Face Hub
 

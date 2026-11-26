@@ -29,7 +29,11 @@ jobs:
         shell: julia --color=yes --project=docs {0}
         run: |
           using Pkg
-          Pkg.develop([PackageSpec(path = "lib/L2OCore"), PackageSpec(path = pwd())])
+          Pkg.develop([
+              PackageSpec(path = "lib/L2OCore"),
+              PackageSpec(path = "lib/L2OSobolev"),
+              PackageSpec(path = pwd()),
+          ])
           Pkg.instantiate()
       - name: Build and deploy documentation
         run: julia --color=yes --project=docs docs/make.jl
