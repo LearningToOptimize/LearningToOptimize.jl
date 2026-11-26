@@ -72,7 +72,8 @@ end
 | directions | [`FullJacobian`](@ref L2OSobolev.FullJacobian), [`RandomPullbacks`](@ref L2OSobolev.RandomPullbacks), [`RandomPushforwards`](@ref L2OSobolev.RandomPushforwards) | which derivative labels `generate_data` records |
 | oracle | [`DiffOptSensitivities`](@ref L2OSobolev.DiffOptSensitivities), [`FiniteDifferenceSensitivities`](@ref L2OSobolev.FiniteDifferenceSensitivities) | where labels come from (`generate_data(...; oracle)`) |
 | labels | `JacobianLabels`, `PullbackLabels`, `PushforwardLabels` (in `L2OCore`) | optional `ds.derivatives` field of the dataset |
-| mask | [`DenseMask`](@ref L2OSobolev.DenseMask), [`RandomMask`](@ref L2OSobolev.RandomMask), [`FixedMask`](@ref L2OSobolev.FixedMask) | which entries are matched per loss evaluation |
+| mask | [`DenseMask`](@ref L2OSobolev.DenseMask), [`RandomMask`](@ref L2OSobolev.RandomMask), [`FixedMask`](@ref L2OSobolev.FixedMask), [`RandomColumnMask`](@ref L2OSobolev.RandomColumnMask), [`RandomRowMask`](@ref L2OSobolev.RandomRowMask) | which entries are matched per loss evaluation |
+| evaluation | [`proxy_metrics`](@ref L2OSobolev.proxy_metrics), [`max_infeasibility_reduction`](@ref L2OSobolev.max_infeasibility_reduction), [`covering_radius`](@ref L2OSobolev.covering_radius) | the paper's MSE / GAP / INF / RMI metrics; the ``δ`` of its approximation bounds |
 | backend | [`LuxNestedAD`](@ref L2OSobolev.LuxNestedAD), [`ZygoteNestedAD`](@ref L2OSobolev.ZygoteNestedAD), [`CentralDifferences`](@ref L2OSobolev.CentralDifferences) | how proxy input derivatives are computed inside the loss |
 | map | [`ProxyMap`](@ref L2OSobolev.ProxyMap) | raw primal output, or completed primal (`through_completion = true`) |
 
@@ -80,6 +81,34 @@ Labels are optional in the data layer: `L2ODataset.derivatives` is `nothing`
 unless an oracle filled it, and datasets with labels work unchanged with any
 other method. `label_errors` compares labels with finite differences of the
 solver map and flags degenerate samples.
+
+## Choosing a mask and filtering labels
+
+| mask | what one update matches | proxy derivatives computed (full Jacobian labels) |
+|:--|:--|:--|
+| `DenseMask()` | all ``n d`` entries | full Jacobian |
+| `RandomMask(ρ)` | `round(ρ n d)` random entries | full Jacobian (the mask is an algorithmic control) |
+| `RandomColumnMask(k)` | ``k`` random columns (parameters) | ``k`` Jacobian–vector products (`LuxNestedAD`, `CentralDifferences`); one Jacobian with `ZygoteNestedAD` |
+| `RandomRowMask(k)` | ``k`` random rows (decision variables) | ``k`` vector–Jacobian products (`LuxNestedAD`, `ZygoteNestedAD`); one Jacobian with `CentralDifferences` |
+| `FixedMask(M)` | the entries of a fixed `M` | full Jacobian |
+
+All random masks are normalized so the expected loss is the dense loss. Column
+masks are the cheap option when the number of parameters ``d`` is large.
+
+Degenerate samples (non-differentiable points of the solution map) can be
+removed while labeling with
+`generate_data(pipe; ..., max_label_error = 1e-3)`, which compares every label
+with central differences of the solver map (`2d` extra solves per sample) and
+records the number removed in `ds.metadata["sobolev_degenerate"]`.
+
+To compare proxies as in the paper's experiments:
+
+```julia
+ref   = generate_data(L2OPipeline(problem, SupervisedMSE()); sampler, n = 500, optimizer)
+bench = proxy_metrics(pipe, ref.inputs, plain_proxy(ref.inputs); reference = ref)
+sob   = proxy_metrics(pipe, ref.inputs, sobolev_proxy(ref.inputs); reference = ref)
+max_infeasibility_reduction(bench, sob)    # RMI per instance, in %
+```
 
 ## Composing with methods
 

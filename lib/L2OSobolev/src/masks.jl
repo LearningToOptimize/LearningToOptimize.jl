@@ -81,3 +81,70 @@ function sample_mask(m::FixedMask, rng::Random.AbstractRNG, dims::Dims)
     )
     return Array{Bool}(m.mask)
 end
+
+"""
+    RandomColumnMask(count)
+
+Keeps `count` uniformly random **columns** of the Jacobian (parameters), redrawn
+at every loss evaluation and shared by the batch. For
+[`JacobianLabels`](@ref L2OCore.JacobianLabels) the loss only needs the proxy
+Jacobian–vector products along the selected unit directions, so its cost is
+`count` [`proxy_pushforward`](@ref)s instead of a full [`proxy_jacobian`](@ref)
+(the paper's remark that selected columns can be computed with Jacobian–vector
+products). For directional labels it keeps `count` entries of the label
+vector.
+
+Every entry is kept with probability
+`count / d` and the loss is normalized by ``\\|\\mathcal M\\|_0 = n \\cdot
+\\mathrm{count}``, so the expectation is the dense loss (eq. (4) of the paper
+for this structured mask).
+"""
+struct RandomColumnMask <: AbstractDerivativeMask
+    count::Int
+    function RandomColumnMask(count::Integer)
+        count >= 1 || throw(ArgumentError("a column mask must keep at least one column"))
+        return new(count)
+    end
+end
+
+"""
+    RandomRowMask(count)
+
+Keeps `count` uniformly random **rows** of the Jacobian (decision variables),
+redrawn at every loss evaluation and shared by the batch. For
+[`JacobianLabels`](@ref L2OCore.JacobianLabels) the loss only needs `count`
+[`proxy_pullback`](@ref)s (vector–Jacobian products with unit seeds). For
+directional labels it keeps `count` entries of the label vector. Unbiased for
+the dense loss, like [`RandomColumnMask`](@ref).
+"""
+struct RandomRowMask <: AbstractDerivativeMask
+    count::Int
+    function RandomRowMask(count::Integer)
+        count >= 1 || throw(ArgumentError("a row mask must keep at least one row"))
+        return new(count)
+    end
+end
+
+const _StructuredMask = Union{RandomColumnMask,RandomRowMask}
+
+# `count` distinct indices out of 1:m, uniformly (sorted).
+_sample_indices(m::_StructuredMask, rng::Random.AbstractRNG, total::Integer) =
+    sort!(Random.randperm(rng, total)[1:min(m.count, total)])
+
+function sample_mask(m::_StructuredMask, rng::Random.AbstractRNG, dims::Tuple{Int})
+    M = fill(false, dims)
+    M[_sample_indices(m, rng, dims[1])] .= true
+    return M
+end
+
+function sample_mask(m::RandomColumnMask, rng::Random.AbstractRNG, dims::Tuple{Int,Int})
+    M = fill(false, dims)
+    M[:, _sample_indices(m, rng, dims[2])] .= true
+    return M
+end
+
+function sample_mask(m::RandomRowMask, rng::Random.AbstractRNG, dims::Tuple{Int,Int})
+    M = fill(false, dims)
+    M[_sample_indices(m, rng, dims[1]), :] .= true
+    return M
+end

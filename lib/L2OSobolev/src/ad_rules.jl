@@ -11,6 +11,7 @@ for f in (
     :_output_rows,
     :_check_batch,
     :_step,
+    :_sample_indices,
 )
     @eval ChainRulesCore.rrule(::typeof($f), args...) =
         ($f(args...), _no_tangents(length(args) + 1))

@@ -186,3 +186,31 @@ end
         proxy = h,
     )
 end
+
+@testset "degenerate samples are filtered with max_label_error" begin
+    prob = ParametricProblem(bound_lp())
+    pipe = L2OPipeline(prob, SobolevRegularized(SupervisedMSE()))
+    # Sample 2 sits on the kink p₁ = p₂ (non-differentiable solution map).
+    sampler = (rng, n) -> [3.0 1.0 0.5; 1.0 1.0 1.5][:, 1:n]
+    plain = generate_data(pipe; sampler, n = 3, optimizer = HiGHS.Optimizer)
+    @test num_samples(plain) == 3 && !haskey(plain.metadata, "sobolev_degenerate")
+    ds = generate_data(
+        pipe;
+        sampler,
+        n = 3,
+        optimizer = HiGHS.Optimizer,
+        max_label_error = 1e-3,
+    )
+    @test num_samples(ds) == 2
+    @test ds.metadata["sobolev_degenerate"] == 1 && ds.metadata["sobolev_dropped"] == 1
+    @test ds.inputs == [3.0 0.5; 1.0 1.5]
+    @test ds.derivatives.J[:, :, 1] ≈ bound_lp_jacobian([3.0, 1.0]) atol = 1e-8
+    @test ds.derivatives.J[:, :, 2] ≈ bound_lp_jacobian([0.5, 1.5]) atol = 1e-8
+    @test_throws ArgumentError generate_data(
+        pipe;
+        sampler,
+        n = 3,
+        oracle = DiffOptSensitivities(HiGHS.Optimizer),
+        max_label_error = 1e-3,
+    )
+end

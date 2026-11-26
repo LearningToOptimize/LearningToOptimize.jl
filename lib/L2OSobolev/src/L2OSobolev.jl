@@ -43,9 +43,11 @@ include("loss.jl")
 include("labels.jl")
 include("wrapper.jl")
 include("theory.jl")
+include("metrics.jl")
 include("ad_rules.jl")
 
-export AbstractDerivativeMask, DenseMask, RandomMask, FixedMask, sample_mask
+export AbstractDerivativeMask,
+    DenseMask, RandomMask, FixedMask, RandomColumnMask, RandomRowMask, sample_mask
 export AbstractSobolevBackend,
     CentralDifferences,
     LuxNestedAD,
@@ -66,5 +68,6 @@ export AbstractDerivativeDirections,
     label_errors
 export SobolevRegularized
 export covering_radius
+export proxy_metrics, max_infeasibility_reduction
 
 end # module L2OSobolev
