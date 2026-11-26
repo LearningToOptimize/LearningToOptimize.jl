@@ -35,7 +35,7 @@ jobs:
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
-      - uses: julia-actions/cache@v2
+      - uses: julia-actions/cache@v3
       # Julia 1.10 ignores the [sources] section of Project.toml, so the lib/
       # subpackages are developed explicitly (harmless on newer versions).
       - name: Develop lib/ subpackages
