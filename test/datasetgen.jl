@@ -223,9 +223,9 @@ function test_compress_batch_arrow(
     @test length([
         file for
         file in readdir(case_file_path; join = true) if occursin(case_name, file) &&
-        occursin("arrow", file) &&
-        occursin(keyword, file) &&
-        any(x -> occursin(x, file), batch_ids)
+            occursin("arrow", file) &&
+            occursin(keyword, file) &&
+            any(x -> occursin(x, file), batch_ids)
     ]) == 10
     batch_id = string(uuid1())
     LearningToOptimize.compress_batch_arrow(
@@ -238,16 +238,16 @@ function test_compress_batch_arrow(
     @test length([
         file for
         file in readdir(case_file_path; join = true) if occursin(case_name, file) &&
-        occursin("arrow", file) &&
-        occursin(keyword, file) &&
-        any(x -> occursin(x, file), batch_ids)
+            occursin("arrow", file) &&
+            occursin(keyword, file) &&
+            any(x -> occursin(x, file), batch_ids)
     ]) == 0
     @test length([
         file for
         file in readdir(case_file_path; join = true) if occursin(case_name, file) &&
-        occursin("arrow", file) &&
-        occursin(keyword, file) &&
-        occursin(batch_id, file)
+            occursin("arrow", file) &&
+            occursin(keyword, file) &&
+            occursin(batch_id, file)
     ]) == 1
     return nothing
 end

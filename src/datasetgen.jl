@@ -220,7 +220,7 @@ function load(
     end
     # Batch
     num_batches = ceil(Int, length(ids) / batch_size)
-    idx_range = (i) -> (i-1)*batch_size+1:min(i * batch_size, length(ids))
+    idx_range = (i) -> ((i-1)*batch_size+1):min(i*batch_size, length(ids))
     return (i) -> ProblemIterator(
         _dataframe_to_dict(df[idx_range(i), :], model_file);
         ids = ids[idx_range(i)],

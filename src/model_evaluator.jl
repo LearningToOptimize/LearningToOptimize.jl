@@ -112,7 +112,7 @@ function feasibility_evaluator(problem_iterator::ProblemIterator, output)
     end
     return average_infeasilibity
 end
-    
+
 """
     _objective_value(model::JuMP.Model, point::Dict{VariableRef,Float64})
 
