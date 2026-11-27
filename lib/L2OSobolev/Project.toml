@@ -1,7 +1,7 @@
 name = "L2OSobolev"
 uuid = "a4245980-63c4-46fd-ae8f-26a0db444464"
 authors = ["LearningToOptimize.jl contributors"]
-version = "0.1.0-DEV"
+version = "0.1.0"
 
 [deps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
