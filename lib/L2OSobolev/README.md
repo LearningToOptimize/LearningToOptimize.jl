@@ -1,36 +1,22 @@
+<div align="center">
+
 # L2OSobolev.jl
 
-[![CI](https://github.com/LearningToOptimize/LearningToOptimize.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/LearningToOptimize/LearningToOptimize.jl/actions/workflows/CI.yml?query=branch%3Amain)
-[![Docs: dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://LearningToOptimize.github.io/LearningToOptimize.jl/dev/sobolev/guide/)
-[![Codecov](https://codecov.io/gh/LearningToOptimize/LearningToOptimize.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/LearningToOptimize/LearningToOptimize.jl)
-[![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
-[![JET](https://img.shields.io/badge/%F0%9F%9B%A9%EF%B8%8F_tested_with-JET.jl-233f9a)](https://github.com/aviatesk/JET.jl)
+<p><sub><b>SOLVER SENSITIVITIES · MASKED JACOBIANS · PRIMAL AND PRIMAL–DUAL METHODS</b></sub></p>
 
-**Sobolev (derivative) supervision for optimization proxies, for any learning-to-optimize method.**
-An optimization proxy learns the solution map `p ↦ x*(p)` of a parametric problem. Besides matching solver
-solutions (values), a Sobolev-trained proxy also matches the solver *sensitivities* `∂x*/∂p`, obtained by implicit
-differentiation of the KKT conditions. Following [*Masked Sobolev Training for Feasibility-Reliable Optimization
-Proxies*](https://andrewrosemberg.github.io/NeurIPS2026-Masked-Sobolev-Optimization-Proxies/) (Rosemberg, Dias
-Garcia, Bent, Van Hentenryck, NeurIPS 2026), only a random subset of the derivative
-entries is matched at each update (the mask is an algorithmic control that avoids over-constraining the proxy where
-active sets change), and the derivative term is a **regularizer that composes with any method**: supervised
-regression, self-supervised penalty or augmented-Lagrangian losses, and completion layers.
+[![CI](https://github.com/LearningToOptimize/LearningToOptimize.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/LearningToOptimize/LearningToOptimize.jl/actions/workflows/CI.yml?query=branch%3Amain) [![Docs: dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://LearningToOptimize.github.io/LearningToOptimize.jl/dev/sobolev/guide/) [![Codecov](https://codecov.io/gh/LearningToOptimize/LearningToOptimize.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/LearningToOptimize/LearningToOptimize.jl) [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl) [![JET](https://img.shields.io/badge/%F0%9F%9B%A9%EF%B8%8F_tested_with-JET.jl-233f9a)](https://github.com/aviatesk/JET.jl)
 
-```mermaid
-flowchart LR
-    subgraph offline
-        P["parameters p_i"] --> S["solver x*(p_i)"]
-        S --> K["KKT sensitivities ∂x*/∂p<br/>(DiffOpt)"]
-    end
-    subgraph training
-        N["proxy ĝθ"] --> I["inner method loss"]
-        N --> J["proxy derivatives Dĝθ<br/>(Lux or Zygote nested AD,<br/>or central differences)"]
-        K --> M["masked Sobolev term"]
-        J --> M
-        I --> L["total loss"]
-        M --> L
-    end
-```
+</div>
+
+<p align="center">
+  <picture>
+    <source media="(max-width: 640px)" srcset="../../docs/src/assets/diagrams/l2osobolev--regularizer-compact.svg">
+    <img src="../../docs/src/assets/diagrams/l2osobolev--regularizer.svg" width="760" alt="Masked Sobolev supervision in two lanes. Dataset: each sampled parameter p_i is solved, g of p_i equals x-star of p_i, the minimizer of f of x and p_i subject to c of x and p_i equal to zero and h of x and p_i at most zero; DiffOpt (implicit differentiation of the KKT conditions) or finite differences give the derivative label Dg of p_i, as a full Jacobian, pullbacks or pushforwards. Training: p_i enters the proxy g-hat_theta; its output enters the inner method loss (for example value matching against the value label g of p_i, or a penalty, ALM or completion-layer loss); its input Jacobian D g-hat_theta of p_i, from nested AD or central differences, and the derivative label are both masked by M and compared by ell_d; the total loss L of theta is the inner loss plus lambda times the mean of ell_d.">
+  </picture>
+</p>
+<p align="center"><i>The solver supplies values and sensitivities; the proxy matches a random subset of the sensitivities, a regularizer added to the loss of a primal or primal–dual method.</i></p>
+
+**L2OSobolev adds Sobolev (derivative) supervision to optimization proxies trained by any primal or primal–dual learning-to-optimize method.** An optimization proxy learns the solution map `p ↦ x*(p)` of a parametric problem; a Sobolev-trained proxy also matches the solver *sensitivities* `∂x*/∂p`, obtained by implicit differentiation of the KKT conditions. Following [*Masked Sobolev Training for Feasibility-Reliable Optimization Proxies*](https://andrewrosemberg.github.io/NeurIPS2026-Masked-Sobolev-Optimization-Proxies/) (Rosemberg, Dias Garcia, Bent, Van Hentenryck, NeurIPS 2026), only a random subset of the derivative entries is matched at each update, and the derivative term composes with supervised regression, self-supervised penalty or augmented-Lagrangian losses, and completion layers.
 
 ## Installation
 
@@ -77,14 +63,20 @@ end
 The [documentation example](https://LearningToOptimize.github.io/LearningToOptimize.jl/dev/examples/sobolev_qp/)
 compares this with plain value supervision (several times lower test error from 8 samples).
 
+<p align="center">
+  <img src="../../docs/src/assets/results/masked-sobolev-acopf.svg" width="460" alt="Two bar charts. Top: mean absolute infeasibility on IEEE-300, PEGASE-1k and RTE-6k is 0.0099, 0.0066 and 0.0042 with masked Sobolev training against 0.0116, 0.0098 and 0.0059 value-only. Bottom: on IEEE-300, infeasibility with 5, 10, 25 and 100 percent of Jacobian entries retained is 0.0099, 0.0094, 0.0141 and 0.0517, against a dashed value-only line at 0.0116.">
+</p>
+<p align="center"><i>Published results of the paper (Tables 1 and 2), not re-run by this package: on AC optimal power flow, masked Sobolev training lowers the mean absolute infeasibility on three networks, and only with sparse masks; dense matching (100% of the Jacobian entries) is worse than no derivative labels.</i></p>
+
 ## What you need to provide
 
-- a JuMP model with `MOI.Parameter`s, wrapped as `ParametricProblem`, and a parameter sampler;
-- an inner method from the ecosystem (`SupervisedMSE()`, `PenaltyMethod()`, an augmented-Lagrangian method, …);
-- a solver supported by DiffOpt (or any JuMP solver with `FiniteDifferenceSensitivities`);
-- a proxy: a Lux `StatefulLuxLayer` (`LuxNestedAD()`) or a Flux model or other Zygote-differentiable
-  callable (`ZygoteNestedAD()`) for exact derivatives, or any callable with `CentralDifferences()`, and
-  a training loop that passes `proxy = model` to `loss` (with Flux, `train_flux!` from LearningToOptimize does).
+| | what |
+|:--|:--|
+| problem | a JuMP model with `MOI.Parameter`s, wrapped as `ParametricProblem`, and a parameter sampler |
+| inner method | any primal or primal-dual method of the ecosystem: `SupervisedMSE()`, `PenaltyMethod()`, an augmented-Lagrangian method, … |
+| labels | a solver supported by DiffOpt, or any JuMP solver with `FiniteDifferenceSensitivities` |
+| proxy | a Lux `StatefulLuxLayer` (`LuxNestedAD()`) or a Flux model or other Zygote-differentiable callable (`ZygoteNestedAD()`) for exact derivatives, or any callable with `CentralDifferences()` |
+| training loop | one that passes `proxy = model` to `loss` (with Flux, `train_flux!` from LearningToOptimize does) |
 
 ## Composition and testing
 

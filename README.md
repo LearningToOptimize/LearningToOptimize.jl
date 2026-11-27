@@ -1,35 +1,26 @@
+<div align="center">
 
-<div style="overflow: auto;">
-    <h1 style="float: left;">LearningToOptimize.jl</h1>
-    <div style="float: right; margin-left: 20px;">
-      <img src="https://raw.githubusercontent.com/LearningToOptimize/LearningToOptimize.jl/main/LearningToOptimize.jpg" alt="Logo" width="100" align="right">
-    </div>
+<img src="https://raw.githubusercontent.com/LearningToOptimize/LearningToOptimize.jl/main/LearningToOptimize.jpg" alt="LearningToOptimize logo" width="100">
+
+# LearningToOptimize.jl
+
+<p><sub><b>PARAMETRIC DATASETS · SENSITIVITY LABELS · OPTIMIZATION PROXIES</b></sub></p>
+
+[![CI](https://github.com/LearningToOptimize/LearningToOptimize.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/LearningToOptimize/LearningToOptimize.jl/actions/workflows/CI.yml?query=branch%3Amain) [![Docs: dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://LearningToOptimize.github.io/LearningToOptimize.jl/dev/) [![Codecov](https://codecov.io/gh/LearningToOptimize/LearningToOptimize.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/LearningToOptimize/LearningToOptimize.jl) [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl) [![JET](https://img.shields.io/badge/%F0%9F%9B%A9%EF%B8%8F_tested_with-JET.jl-233f9a)](https://github.com/aviatesk/JET.jl)
+
 </div>
 
-[![CI](https://github.com/LearningToOptimize/LearningToOptimize.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/LearningToOptimize/LearningToOptimize.jl/actions/workflows/CI.yml?query=branch%3Amain)
-[![Docs: dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://LearningToOptimize.github.io/LearningToOptimize.jl/dev/)
-[![Codecov](https://codecov.io/gh/LearningToOptimize/LearningToOptimize.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/LearningToOptimize/LearningToOptimize.jl)
-[![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
-[![JET](https://img.shields.io/badge/%F0%9F%9B%A9%EF%B8%8F_tested_with-JET.jl-233f9a)](https://github.com/aviatesk/JET.jl)
+<p align="center">
+  <picture>
+    <source media="(max-width: 640px)" srcset="docs/src/assets/diagrams/learningtooptimize--method-compact.svg">
+    <img src="docs/src/assets/diagrams/learningtooptimize--method.svg" width="760" alt="How an optimization proxy is trained and used, in three panels. Parametric problem: OPT of p is the minimum over x of f of x and p, subject to g_i of x and p in the set S_i; the JuMP model declares its data as parameters, and a sampler draws p from a distribution D. Proxy: a network phi_theta maps p to a raw output z. Method: an optional BoundedOutput layer beta of z, then either the method's training loss ell of phi_theta of p and p (penalty, DC3, DLL, ALM, and others), or, at inference, complete gives the prediction x-hat, y-hat, followed by an optional ProjectionRepair onto the feasible set; evaluate reports the objective, violations, the dual bound s d of y-hat and p, and the gap. A dashed arrow returns the gradient of the expected loss to the weights theta.">
+  </picture>
+</p>
+<p align="center"><i>A proxy maps the parameters of a JuMP model to a raw output; each method turns that output into a training loss, or completes it into a prediction at inference, with optional repair layers.</i></p>
 
-**LearningToOptimize.jl** trains *optimization proxies*: machine-learning models that map the parameters of a
-parametric optimization problem, written in JuMP, to (near-)optimal primal and/or dual solutions, orders of magnitude
-faster than a solver. It provides the shared layer that every learning-to-optimize (L2O) method needs — a problem
-wrapper with fixed input/output layouts, dataset generation, batched evaluation of objectives, violations and dual
-bounds — so that a new method only implements what is specific to it. The reference method shipped here is the
-penalty ("soft loss") approach, eq. (2) of [Donti, Rolnick & Kolter, ICLR 2021](https://arxiv.org/abs/2104.12225);
-methods with completion steps (feasibility restoration, dual completion) live in sibling packages. See the [survey by Kotary et al. (IJCAI 2021)](https://arxiv.org/abs/2103.16378) for the field, and our
-[Hugging Face organization](https://huggingface.co/LearningToOptimize) for datasets, pre-trained models and benchmarks.
+**LearningToOptimize.jl** trains *optimization proxies*: machine-learning models that map the parameters of a parametric optimization problem, written in JuMP, to (near-)optimal primal and/or dual solutions, orders of magnitude faster than a solver. It provides the layer every learning-to-optimize (L2O) method shares (a problem wrapper with fixed input and output layouts, dataset generation, and batched evaluation of objectives, violations and dual bounds), so a new method implements only what is specific to it.
 
-```mermaid
-flowchart LR
-    M["JuMP model<br/>with parameters"] --> PP["ParametricProblem"]
-    PP --> PIPE["L2OPipeline(problem, method)"]
-    PIPE --> D["generate_data"]
-    D --> T["train proxy"]
-    T --> C["complete"]
-    C --> E["evaluate: objective,<br/>violations, dual bound"]
-```
+The reference method shipped here is the penalty ("soft loss") approach, eq. (2) of [Donti, Rolnick & Kolter, ICLR 2021](https://arxiv.org/abs/2104.12225); methods with completion steps (feasibility restoration, dual completion) live in sibling packages. See the [survey by Kotary et al. (IJCAI 2021)](https://arxiv.org/abs/2103.16378) for the field, and the [Hugging Face organization](https://huggingface.co/LearningToOptimize) for datasets, pre-trained models and benchmarks.
 
 ## Installation
 
@@ -72,10 +63,12 @@ evaluate(pipe, test.inputs, prediction)                  # objective, violations
 
 ## What you need to provide
 
-- A JuMP model whose instance data are parameters (`@variable(model, p in MOI.Parameter(value))`).
-- A parameter distribution: `BoxSampler`, `ScaledSampler`, or any function `(rng, n) -> matrix`.
-- A proxy: any callable mapping a `num_parameters × batch` matrix to the method's output (Flux, Lux, plain Julia).
-- A solver, only for methods (or evaluations) that need labels or reference optima.
+| | what | examples |
+|:--|:--|:--|
+| problem | a JuMP model whose instance data are parameters | `@variable(model, p in MOI.Parameter(value))` |
+| parameter distribution | a sampler | `BoxSampler`, `ScaledSampler`, or any function `(rng, n) -> matrix` |
+| proxy | any callable from a `num_parameters × batch` matrix to the method's output | Flux, Lux, plain Julia |
+| solver | only for methods (or evaluations) that need labels or reference optima | HiGHS, Ipopt, any JuMP solver |
 
 ## Solver-labeled datasets
 
@@ -122,6 +115,10 @@ How the pieces fit, and how to add a method, is explained in the [design page](h
 to any method: the proxy also matches randomly selected entries of the solver sensitivities ∂x*/∂p,
 obtained by implicit differentiation of the KKT conditions with DiffOpt.jl.
 
+<p align="center">
+  <img src="docs/src/assets/diagrams/l2osobolev--regularizer.svg" width="600" alt="Masked Sobolev supervision. Dataset lane: each sampled p_i is solved for the value label g of p_i, and DiffOpt (or finite differences) gives the derivative label Dg of p_i. Training lane: the proxy g-hat_theta enters the inner method loss, for example value matching; its input Jacobian, masked by M, is matched to the masked derivative label; the total loss is the inner loss plus lambda times the mean masked term.">
+</p>
+
 ```julia
 using L2OCore, L2OSobolev
 method = SobolevRegularized(SupervisedMSE(); weight = 1.0, mask = RandomMask(0.1), backend = LuxNestedAD())
@@ -137,25 +134,7 @@ the [package guide](https://LearningToOptimize.github.io/LearningToOptimize.jl/d
 
 ## Background
 
-Parametric optimization problems arise when certain elements (e.g., coefficients, constraints) may vary according to problem parameters. A general form of a parameterized convex optimization problem is 
-
-$$
-\begin{aligned}
-&\min_{x} \quad f(x; \theta) \\
-&\text{subject to} \quad g_i(x; \theta) \leq 0, \quad i = 1,\dots, m \\
-&\quad\quad\quad\quad A(\theta)x = b(\theta)
-\end{aligned}
-$$
-
-where $\theta$ is the parameter.
-
-**Learning to Optimize (L2O)** is an emerging paradigm where machine learning models *learn* to solve optimization problems efficiently. This approach is also known as **optimization proxies** or **amortized optimization**. 
-
-In more technical terms, **amortized optimization** seeks to learn a function $f_\theta(x)$ that maps problem parameters $x$ to solutions $y$ that (approximately) minimize a given objective function subject to constraints. Modern methods leverage techniques like **differentiable optimization layers**, **input-convex neural networks**, or constraint-enforcing architectures (e.g., [DC3](https://openreview.net/pdf?id=0Ow8_1kM5Z)) to ensure that the learned proxy solutions are both feasible and performant. By coupling the solver and the model in an **end-to-end** pipeline, these approaches let the training objective directly reflect downstream metrics, improving speed and reliability.
-
-Recent advances also focus on **trustworthy** proxies, whose outputs satisfy the constraints or come with valid performance bounds by construction. This is crucial in domains like energy systems or manufacturing, where infeasible solutions can have large penalties or safety concerns. Overall, learning-based optimization frameworks aim to combine the advantages of ML (data-driven generalization) with the rigor of mathematical programming (constraint handling and optimality).
-
-For a broader overview, see the [SIAM News article on trustworthy optimization proxies](https://www.siam.org/publications/siam-news/articles/fusing-artificial-intelligence-and-optimization-with-trustworthy-optimization-proxies/), which highlights the growing synergy between AI and classical optimization.
+A parametric optimization problem maps parameters $p$ to an instance $\min_x f(x; p)$ subject to $g_i(x; p) \in \mathcal{S}_i$; learning to optimize (also called optimization proxies or amortized optimization) trains a model $\phi_\theta$ that maps $p$ to a (near-)optimal solution, so that a forward pass replaces a solve. Methods differ in how they handle the constraints: penalties in the loss, completion and correction layers (e.g. [DC3](https://openreview.net/pdf?id=0Ow8_1kM5Z)), dual proxies with valid bounds, or primal-dual training. The [Theory page](https://LearningToOptimize.github.io/LearningToOptimize.jl/dev/theory/) states the notation and the mathematics; the [SIAM News article](https://www.siam.org/publications/siam-news/articles/fusing-artificial-intelligence-and-optimization-with-trustworthy-optimization-proxies/) gives a broader overview of the field.
 
 ## Citation
 
