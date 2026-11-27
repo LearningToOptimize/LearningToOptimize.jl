@@ -25,8 +25,9 @@ same ``\\mathcal{M}`` in every term of eq. (2) of the paper).
 
 With the normalization by ``\\|\\mathcal{M}\\|_0 = k``, the masked loss is an
 unbiased
-estimator of the dense loss, ``\\mathbb{E}_{\\mathcal{M}}[\\ell_d] =
-\\|D\\hat g_θ - Dg\\|_F^2 / (n d)``, because every entry is retained with
+estimator of the dense loss,
+``\\mathbb{E}_{\\mathcal{M}}[\\ell_d] = \\|D\\hat g_θ - Dg\\|_F^2 / (n d)``,
+because every entry is retained with
 probability ``k/m``.
 
 The paper reports that keeping 5–10% of the Jacobian entries (`density =
@@ -95,8 +96,9 @@ products). For directional labels it keeps `count` entries of the label
 vector.
 
 Every entry is kept with probability
-`count / d` and the loss is normalized by ``\\|\\mathcal M\\|_0 = n \\cdot
-\\mathrm{count}``, so the expectation is the dense loss (eq. (4) of the paper
+`count / d` and the loss is normalized by
+``\\|\\mathcal M\\|_0 = n \\cdot \\mathrm{count}``, so the expectation is the dense loss
+(eq. (4) of the paper
 for this structured mask).
 """
 struct RandomColumnMask <: AbstractDerivativeMask
