@@ -1,0 +1,94 @@
+% LearningToOptimize ecosystem: the type hierarchy of L2OCore.
+%
+% Methods (by family, plus wrappers that add behaviour to any method), problem
+% classes (traits detected from the JuMP model) and evaluators (interchangeable
+% batched backends). Abstract types are plain navy names; concrete types are
+% chips; dashed chips are planned. Concrete types live in L2OCore
+% (SupervisedMSE, BoundedOutput, ProjectionRepair, the classes and evaluators),
+% LearningToOptimize (PenaltyMethod), L2OSobolev (SobolevRegularized) and the
+% method packages (DC3 and FSNet in L2ODC3, DualLagrangianLearning in L2ODLL,
+% ALMMethod in L2OALM). Content follows docs/src/design.md.
+%
+% Build: make -C docs/src/assets/diagrams/src
+%   pdflatex -jobname=learningtooptimize--types types.tex          -> wide layout
+%   pdflatex -jobname=learningtooptimize--types-compact types.tex  -> narrow layout
+\documentclass[tikz,border=4pt]{standalone}
+\input{l2ostyle.tex}
+
+% a branch of a tree: horizontal tick from the trunk at x=#1 to the item at y=#2
+\newcommand{\tick}[2]{\draw[dGray,line width=0.5pt] (#1,#2) -- (#1+0.3,#2);}
+
+\begin{document}
+\ifcompact
+% ============================ narrow (phone) layout ============================
+\begin{tikzpicture}
+  % ---- methods ----
+  \lane{0}{8.6}{7.6}{15.2}
+  \node[title] at (0.2,14.85) {\textcolor{dTeal}{\bfseries Methods}};
+  \node[absname] at (0.25,14.3) {AbstractL2OMethod};
+  \draw[dGray,line width=0.5pt] (0.45,14.1) -- (0.45,9.85);
+  \tick{0.45}{13.65}\node[absname] at (0.8,13.65) {AbstractPrimalMethod};
+  \chiprow{0.85}{13.1}{tchip}{SupervisedMSE,PenaltyMethod,DC3}
+  \chiprow{0.85}{12.55}{tchip}{FSNet}
+  \node[tplan,anchor=west] at ($(cr@last.east)+(0.12,0)$) {LDF (planned)};
+  \tick{0.45}{11.95}\node[absname] at (0.8,11.95) {AbstractDualMethod};
+  \chiprow{0.85}{11.4}{tchip}{DualLagrangianLearning}
+  \tick{0.45}{10.8}\node[absname] at (0.8,10.8) {AbstractPrimalDualMethod};
+  \chiprow{4.65}{10.8}{tchip}{ALMMethod}
+  \tick{0.45}{10.2}\node[absname] at (0.8,10.2) {AbstractMethodWrapper};
+  \chiprow{0.85}{9.65}{tchip}{BoundedOutput,ProjectionRepair}
+  \chiprow{0.85}{9.1}{tchip}{SobolevRegularized}
+  % ---- problem classes ----
+  \lane{0}{4.4}{7.6}{8.0}
+  \node[title] at (0.2,7.65) {\textcolor{dTeal}{\bfseries Problem classes}};
+  \node[absname] at (0.25,7.1) {AbstractProblemClass};
+  \draw[dGray,line width=0.5pt] (0.45,6.9) -- (0.45,5.0);
+  \tick{0.45}{6.45}\node[absname] at (0.8,6.45) {AbstractConvexClass};
+  \chiprow{0.85}{5.9}{tchip}{LinearConic,ConvexQuadratic}
+  \tick{0.45}{5.0}\chiprow{0.8}{5.0}{tchip}{SmoothNonlinear,MixedInteger}
+  % ---- evaluators ----
+  \lane{0}{0}{7.6}{3.8}
+  \node[title] at (0.2,3.45) {\textcolor{dTeal}{\bfseries Evaluators}};
+  \node[absname] at (0.25,2.9) {AbstractEvaluator};
+  \draw[dGray,line width=0.5pt] (0.45,2.7) -- (0.45,1.2);
+  \tick{0.45}{2.2}\chiprow{0.8}{2.2}{tchip}{MatrixEvaluator,JuMPEvaluator}
+  \tick{0.45}{1.2}\chiprow{0.8}{1.2}{tplan}{kernel evaluator (planned)}
+  \node[note,anchor=west] at (0.25,0.45) {navy: abstract type;\; chip: concrete;\; dashed: planned};
+\end{tikzpicture}
+\else
+% =============================== wide layout ===================================
+\begin{tikzpicture}
+  % ---- methods ----
+  \lane{0}{0}{9.9}{6.6}
+  \node[title] at (0.2,6.25) {\textcolor{dTeal}{\bfseries Methods}};
+  \node[absname] at (0.25,5.7) {AbstractL2OMethod};
+  \draw[dGray,line width=0.5pt] (0.45,5.5) -- (0.45,1.35);
+  \tick{0.45}{5.1}\node[absname] at (0.8,5.1) {AbstractPrimalMethod};
+  \chiprow{0.85}{4.55}{tchip}{SupervisedMSE,PenaltyMethod,DC3,FSNet}
+  \node[tplan,anchor=west] at ($(cr@last.east)+(0.12,0)$) {LDF (planned)};
+  \tick{0.45}{3.85}\node[absname] at (0.8,3.85) {AbstractDualMethod};
+  \chiprow{4.7}{3.85}{tchip}{DualLagrangianLearning}
+  \tick{0.45}{3.1}\node[absname] at (0.8,3.1) {AbstractPrimalDualMethod};
+  \chiprow{4.7}{3.1}{tchip}{ALMMethod}
+  \tick{0.45}{2.35}\node[absname] at (0.8,2.35) {AbstractMethodWrapper};
+  \chiprow{0.85}{1.8}{tchip}{BoundedOutput,ProjectionRepair,SobolevRegularized}
+  \node[note,anchor=west] at (0.25,0.75) {wrappers forward to an inner method and add behaviour (a loss term, a repair)};
+  % ---- problem classes ----
+  \lane{10.5}{3.3}{16.4}{6.6}
+  \node[title] at (10.7,6.25) {\textcolor{dTeal}{\bfseries Problem classes}};
+  \node[absname] at (10.75,5.7) {AbstractProblemClass};
+  \draw[dGray,line width=0.5pt] (10.95,5.5) -- (10.95,3.85);
+  \tick{10.95}{5.1}\node[absname] at (11.3,5.1) {AbstractConvexClass};
+  \chiprow{11.35}{4.55}{tchip}{LinearConic,ConvexQuadratic}
+  \tick{10.95}{3.85}\chiprow{11.3}{3.85}{tchip}{SmoothNonlinear,MixedInteger}
+  % ---- evaluators ----
+  \lane{10.5}{0}{16.4}{2.7}
+  \node[title] at (10.7,2.35) {\textcolor{dTeal}{\bfseries Evaluators}};
+  \node[absname] at (10.75,1.8) {AbstractEvaluator};
+  \draw[dGray,line width=0.5pt] (10.95,1.6) -- (10.95,0.55);
+  \tick{10.95}{1.15}\chiprow{11.3}{1.15}{tchip}{MatrixEvaluator,JuMPEvaluator}
+  \tick{10.95}{0.55}\chiprow{11.3}{0.55}{tplan}{kernel evaluator (planned)}
+  \node[note,anchor=east] at (16.4,-0.4) {navy: abstract type;\; chip: concrete type;\; dashed: planned};
+\end{tikzpicture}
+\fi
+\end{document}
