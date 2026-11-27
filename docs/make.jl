@@ -1,5 +1,4 @@
 using Documenter
-using DocumenterMermaid
 using Literate
 using LearningToOptimize
 using L2OCore
@@ -28,7 +27,7 @@ makedocs(;
         prettyurls = get(ENV, "CI", "false") == "true",
         canonical = "https://LearningToOptimize.github.io/LearningToOptimize.jl",
         edit_link = "main",
-        assets = String[],
+        assets = ["assets/figures.css"],
         size_threshold = 300 * 1024,
     ),
     pages = [

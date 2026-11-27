@@ -2,7 +2,6 @@
 ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
 DiffOpt = "930fe3bc-9c6b-11ea-2d94-6184641e85e7"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-DocumenterMermaid = "a078cd44-4d9c-4618-b545-3ab9d77f9177"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 HiGHS = "87dc4568-4c63-4d18-b0c0-bb2238e4078b"
 JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
