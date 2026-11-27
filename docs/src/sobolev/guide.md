@@ -6,22 +6,15 @@ The method, its derivative labels and the approximation results are on the
 [theory page](@ref "Theory: Sobolev (derivative) supervision"); a runnable
 example is [Sobolev-regularized proxy for a parametric QP](@ref).
 
-```mermaid
-flowchart LR
-    subgraph offline["offline (data generation)"]
-        S["sampler"] --> P["parameters p_i"]
-        P --> SOL["solver: x*(p_i)"]
-        SOL --> OR["sensitivity oracle<br/>DiffOpt (KKT, eq. 1) or finite differences"]
-        OR --> DL["derivative labels<br/>Jacobian / pullback / pushforward"]
-    end
-    subgraph online["online (training)"]
-        PX["proxy ĝθ"] --> IN["inner method loss<br/>(supervised, penalty, ALM, ...)"]
-        PX --> BE["backend: Dĝθ(p_i)<br/>LuxNestedAD, ZygoteNestedAD<br/>or CentralDifferences"]
-        BE --> SL["masked Sobolev term<br/>eq. (2)-(3)"]
-        DL --> SL
-        IN --> L["loss = inner + λ · Sobolev"]
-        SL --> L
-    end
+```@raw html
+<figure class="fig has-compact">
+```
+![Masked Sobolev supervision. Dataset lane: each sampled p_i is solved for the value label g of p_i; DiffOpt or finite differences give the derivative label Dg of p_i. Training lane: the proxy g-hat_theta enters the inner method loss; its input Jacobian and the derivative label, both masked by M, are compared by ell_d; the total loss is the inner loss plus lambda times the mean masked term.](../assets/diagrams/l2osobolev--regularizer.svg)
+
+![The same diagram in a narrow layout.](../assets/diagrams/l2osobolev--regularizer-compact.svg)
+```@raw html
+<figcaption><b>Values and sensitivities from the solver, a masked derivative term in the loss.</b> Labels are computed offline by <code>generate_data</code> with a sensitivity oracle; during training the backend computes the proxy derivatives, the mask selects the entries that are matched, and <code>SobolevRegularized</code> adds $\lambda$ times the masked term to the inner method's loss. Equation numbers refer to the theory page.</figcaption>
+</figure>
 ```
 
 ## Getting started

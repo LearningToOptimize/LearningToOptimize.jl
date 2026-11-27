@@ -4,24 +4,22 @@ CurrentModule = LearningToOptimize
 
 # LearningToOptimize.jl
 
-**LearningToOptimize.jl** trains *optimization proxies*: machine-learning models that map the parameters of a
-parametric optimization problem, written in JuMP, to (near-)optimal primal and/or dual solutions, orders of magnitude
-faster than a solver. It provides the shared layer that every learning-to-optimize (L2O) method needs — a problem
-wrapper with fixed input/output layouts, dataset generation, batched evaluation of objectives, violations and dual
-bounds — so that a new method only implements what is specific to it. The reference method shipped here is the
-penalty ("soft loss") approach, eq. (2) of [Donti, Rolnick & Kolter, ICLR 2021](https://arxiv.org/abs/2104.12225);
+```@raw html
+<p class="eyebrow">Parametric datasets · Sensitivity labels · Optimization proxies</p>
+<figure class="fig hero has-compact">
+```
+![How an optimization proxy is trained and used. Parametric problem: OPT of p is the minimum over x of f of x and p subject to g_i of x and p in S_i, with p drawn by a sampler. Proxy: a network phi_theta maps p to a raw output z. Method: an optional BoundedOutput layer, then either the training loss ell of phi_theta of p and p, or at inference complete, giving x-hat and y-hat, and an optional ProjectionRepair; evaluate reports objective, violations, dual bound and gap. A dashed arrow returns the gradient of the expected loss to theta.](assets/diagrams/learningtooptimize--method.svg)
+
+![The same diagram in a narrow layout.](assets/diagrams/learningtooptimize--method-compact.svg)
+```@raw html
+<figcaption><i>A proxy maps the parameters of a JuMP model to a raw output; each method turns that output into a training loss, or completes it into a prediction at inference, with optional repair layers.</i></figcaption>
+</figure>
+<p class="lede"><b>LearningToOptimize.jl</b> trains <i>optimization proxies</i>: machine-learning models that map the parameters of a parametric optimization problem, written in JuMP, to (near-)optimal primal and/or dual solutions, orders of magnitude faster than a solver. It provides the layer every learning-to-optimize (L2O) method shares (a problem wrapper with fixed input and output layouts, dataset generation, and batched evaluation of objectives, violations and dual bounds), so a new method implements only what is specific to it.</p>
+```
+
+The reference method shipped here is the penalty ("soft loss") approach, eq. (2) of [Donti, Rolnick & Kolter, ICLR 2021](https://arxiv.org/abs/2104.12225);
 methods with completion steps (feasibility restoration, dual completion) live in sibling packages. See the [survey by Kotary et al. (IJCAI 2021)](https://arxiv.org/abs/2103.16378) for the field, and our
 [Hugging Face organization](https://huggingface.co/LearningToOptimize) for datasets, pre-trained models and benchmarks.
-
-```mermaid
-flowchart LR
-    M["JuMP model<br/>with parameters"] --> PP["ParametricProblem"]
-    PP --> PIPE["L2OPipeline(problem, method)"]
-    PIPE --> D["generate_data"]
-    D --> T["train proxy"]
-    T --> C["complete"]
-    C --> E["evaluate: objective,<br/>violations, dual bound"]
-```
 
 ## Installation
 

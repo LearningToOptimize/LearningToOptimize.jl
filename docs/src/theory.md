@@ -29,6 +29,17 @@ minimizes a method-specific loss ``\mathbb{E}_{p \sim \mathcal{D}}
 [\ell(\phi_\theta(p); p)]`` over a parameter distribution ``\mathcal{D}``
 (an `AbstractParameterSampler`).
 
+```@raw html
+<figure class="fig has-compact">
+```
+![How an optimization proxy is trained and used. Parametric problem: OPT of p is the minimum over x of f of x and p subject to g_i of x and p in S_i, with p drawn by a sampler. Proxy: a network phi_theta maps p to a raw output z. Method: an optional BoundedOutput layer, then either the training loss ell of phi_theta of p and p, or at inference complete, giving x-hat and y-hat, and an optional ProjectionRepair; evaluate reports objective, violations, dual bound and gap. A dashed arrow returns the gradient of the expected loss to theta.](assets/diagrams/learningtooptimize--method.svg)
+
+![The same diagram in a narrow layout.](assets/diagrams/learningtooptimize--method-compact.svg)
+```@raw html
+<figcaption><b>The objects of this page.</b> The parametric problem (T1) is sampled through $p$; the proxy $\phi_\theta$ returns a raw output $z$; the method's loss trains $\theta$, and its completion gives the prediction $(\hat x, \hat y)$ that <code>evaluate</code> measures. <code>BoundedOutput</code> (T6) and <code>ProjectionRepair</code> (T7) are the optional repair layers described below.</figcaption>
+</figure>
+```
+
 ## Matrix form
 
 For the classes `LinearConic` and `ConvexQuadratic`, with parameters entering
