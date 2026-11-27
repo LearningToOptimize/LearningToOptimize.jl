@@ -1,10 +1,10 @@
-% L2OSobolev: masked Sobolev supervision as a regularizer on any method.
+% L2OSobolev: masked Sobolev supervision as a regularizer on primal and primal-dual methods.
 %
 % Dataset: each sampled p_i is solved (S1) for the value label g(p_i); a
 % sensitivity oracle (DiffOpt, implicit differentiation of the KKT conditions
 % (S3), or finite differences) gives the derivative label Dg(p_i).
-% Training: the proxy g-hat_theta enters the inner method's loss (any method;
-% value matching for supervised methods); its input Jacobian, masked by M,
+% Training: the proxy g-hat_theta enters the inner method's loss (any primal or
+% primal-dual method; value matching for supervised methods); its input Jacobian, masked by M,
 % is matched to the masked label (S5); the total loss is (S4).
 % The layout follows Fig. 1 of the masked Sobolev paper (NeurIPS 2026);
 % notation follows docs/src/sobolev/theory.md.
@@ -44,7 +44,7 @@
   \draw[fwd] (or.east) -- (dg.west);
   % ---- training ----
   \lane{0}{-0.75}{7.6}{7.8}
-  \node[title] at (0.2,7.45) {\textcolor{dTeal}{\bfseries Training:} any method $+\;\lambda\,\cdot$ masked term};
+  \node[title] at (0.2,7.45) {\textcolor{dTeal}{\bfseries Training:} inner loss $+\;\lambda\,\cdot$ masked term};
   \node[store] (p) at (0.85,5.9) {$p_i$};
   \draw[fwd] (p.north) -- (0.85,10.65);
   \net{3.1,5.9}{px}{0}
@@ -91,7 +91,7 @@
 
   % ---- training ----
   \lane{7.2}{0}{19.4}{7.0}
-  \node[title] at (7.4,6.65) {\textcolor{dTeal}{\bfseries Training:} any method $+\;\lambda\,\cdot$ masked Sobolev term};
+  \node[title] at (7.4,6.65) {\textcolor{dTeal}{\bfseries Training:} inner method loss $+\;\lambda\,\cdot$ masked Sobolev term};
   \node[store] (p) at (8.1,3.9) {$p_i$};
   \draw[fwd] (p.north) -- (8.1,4.75) -- (6.3,4.75);
   \net{10.2,3.9}{px}{0}
