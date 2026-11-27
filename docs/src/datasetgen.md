@@ -11,7 +11,16 @@ values of every instance, a [`Recorder`](@ref) chooses what to save, and
 [`solve_batch`](@ref) solves every instance and writes one row per successful
 solve. Every instance gets a UUID, which links input and output files.
 
-![Dataset generation workflow](assets/L2O.png)
+```@raw html
+<figure class="fig has-compact">
+```
+![Dataset lane: the parameter samples p_i are solved, min over y of f of y and p_i subject to y in the feasible set, and the solutions y-star_i and multipliers lambda-star_i are stored. Training lane: the network g-hat_theta maps p_i to y-hat_i, a loss compares it with the stored solution, and a dashed gradient returns to the network.](assets/diagrams/learningtooptimize--workflow.svg)
+
+![The same diagram in a narrow layout.](assets/diagrams/learningtooptimize--workflow-compact.svg)
+```@raw html
+<figcaption><b>Solve every instance once, then train on the stored solutions.</b> A <code>ProblemIterator</code> holds the parameter samples, <code>solve_batch</code> solves each instance, and a <code>Recorder</code> stores the decisions and multipliers that a learning library reads as labels. The figure writes the decision as $\mathbf y$ and the proxy as $\hat g_\theta$.</figcaption>
+</figure>
+```
 
 The code on this page runs as one script in an environment with
 LearningToOptimize, JuMP, HiGHS, CSV, DataFrames, Flux, MLJ, MLJFlux and

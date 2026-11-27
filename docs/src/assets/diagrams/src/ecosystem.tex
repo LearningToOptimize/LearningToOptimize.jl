@@ -1,0 +1,83 @@
+% LearningToOptimize ecosystem: which package depends on which.
+%
+% Every package depends on L2OCore (lib/L2OCore of this repository) and on
+% nothing else of the ecosystem. Dashed boxes are planned packages; dashed
+% arrows are planned dependencies or package extensions (weak dependencies).
+% Content follows the "Packages" section of docs/src/design.md.
+%
+% Build: make -C docs/src/assets/diagrams/src
+%   pdflatex -jobname=learningtooptimize--ecosystem ecosystem.tex          -> wide layout
+%   pdflatex -jobname=learningtooptimize--ecosystem-compact ecosystem.tex  -> narrow layout
+\documentclass[tikz,border=4pt]{standalone}
+\input{l2ostyle.tex}
+
+\newcommand{\pk}[2]{{\small\bfseries #1}\\#2}
+
+\begin{document}
+\ifcompact
+% ============================ narrow (phone) layout ============================
+\begin{tikzpicture}
+  \lane{0}{6.3}{7.6}{13.1}
+  \node[title] at (0.2,12.75) {\textcolor{dTeal}{\bfseries LearningToOptimize.jl} repository};
+  \node[pkg,text width=3.0cm] (lto) at (1.95,11.4) {\pk{LearningToOptimize}{penalty method,\\Flux training, dataset files}};
+  \node[pkg,text width=3.0cm] (sob) at (5.65,11.4) {\pk{L2OSobolev}{derivative supervision\\for any method}};
+  \node[pkgcore,text width=6.2cm] (core) at (3.8,9.3) {\pk{\textcolor{dTeal}{L2OCore}}{method families, problem wrapper,\\batched evaluators, datasets}};
+  \node[pkgplan,text width=3.0cm] (dat) at (1.95,7.25) {\pk{L2OData}{planned: file formats}};
+  \node[pkgplan,text width=3.0cm] (ker) at (5.65,7.25) {\pk{L2OKernels}{planned: GPU evaluators}};
+  \draw[dep] (lto.south) -- (lto.south |- core.north);
+  \draw[dep] (sob.south) -- (sob.south |- core.north);
+  \draw[pdep] (dat.north) -- (dat.north |- core.south);
+  \draw[pdep] (ker.north) -- (ker.north |- core.south);
+  % method packages
+  \node[head,anchor=west] at (0.1,5.75) {method packages};
+  \node[pkg,text width=3.0cm] (dll) at (1.95,4.75) {\pk{L2ODLL.jl}{dual: Lagrangian bounds}};
+  \node[pkg,text width=3.0cm] (dc3) at (5.65,4.75) {\pk{L2ODC3.jl}{primal: completion\\and correction}};
+  \node[pkg,text width=3.0cm] (alm) at (1.95,3.25) {\pk{L2OALM.jl}{primal--dual:\\augmented Lagrangian}};
+  \node[pkgplan,text width=3.0cm] (ldf) at (5.65,3.25) {\pk{LDF}{planned: Lagrangian\\dual framework}};
+  \draw[dep] (dll.west) -- (-0.3,4.75) -- (-0.3,9.3) -- (core.west);
+  \draw[dep] (alm.west) -- (-0.3,3.25) -- (-0.3,4.75);
+  \draw[dep] (dc3.east) -- (7.9,4.75) -- (7.9,9.3) -- (core.east);
+  \draw[pdep] (ldf.east) -- (7.9,3.25) -- (7.9,4.75);
+  % kernels
+  \node[pkg,text width=4.2cm] (bnk) at (3.8,1.35) {\pk{BatchNLPKernels.jl}{ExaModels kernels, CPU or GPU}};
+  \draw[pdep] (ker.west) -- (3.8,7.25) -- (bnk.north);
+  \draw[pdep] (alm.south) |- (bnk.west);
+  \draw[dep] (0.3,0.15) -- (1.0,0.15) node[right,note] {depends on};
+  \draw[pdep] (3.0,0.15) -- (3.7,0.15) node[right,note] {planned, or extension};
+\end{tikzpicture}
+\else
+% =============================== wide layout ===================================
+\begin{tikzpicture}
+  \lane{0}{0}{9.6}{5.8}
+  \node[title] at (0.2,5.45) {\textcolor{dTeal}{\bfseries LearningToOptimize.jl} repository};
+  \node[pkg,text width=3.1cm] (lto) at (2.0,3.95) {\pk{LearningToOptimize}{penalty method,\\Flux training, dataset files}};
+  \node[pkg,text width=3.1cm] (sob) at (2.0,1.55) {\pk{L2OSobolev}{derivative supervision\\for any method}};
+  \node[pkgcore,text width=3.6cm] (core) at (6.85,2.75) {\pk{\textcolor{dTeal}{L2OCore}}{method families,\\problem wrapper, batched\\evaluators, datasets}};
+  \node[pkgplan,text width=3.6cm] (dat) at (6.85,4.85) {\pk{L2OData}{planned: dataset file formats}};
+  \node[pkgplan,text width=3.6cm] (ker) at (6.85,0.65) {\pk{L2OKernels}{planned: batched GPU evaluators}};
+  \draw[dep] (lto.east) -- (core.west |- 0,3.2);
+  \draw[dep] (sob.east) -- (core.west |- 0,2.3);
+  \draw[pdep] (dat.south) -- (core.north);
+  \draw[pdep] (ker.north) -- (core.south);
+
+  % method packages
+  \node[head,anchor=west] at (10.6,5.45) {method packages};
+  \node[pkg,text width=4.3cm] (dll) at (12.85,4.65) {\pk{L2ODLL.jl}{dual: Lagrangian bounds}};
+  \node[pkg,text width=4.3cm] (dc3) at (12.85,3.45) {\pk{L2ODC3.jl}{primal: completion and correction}};
+  \node[pkg,text width=4.3cm] (alm) at (12.85,2.25) {\pk{L2OALM.jl}{primal--dual: augmented Lagrangian}};
+  \node[pkgplan,text width=4.3cm] (ldf) at (12.85,1.05) {\pk{LDF}{planned: Lagrangian dual framework}};
+  \draw[dep] (dll.west) -- (core.east |- 0,3.35);
+  \draw[dep] (dc3.west) -- (core.east |- 0,3.0);
+  \draw[dep] (alm.west) -- (core.east |- 0,2.6);
+  \draw[pdep] (ldf.west) -- (core.east |- 0,2.25);
+
+  % kernels
+  \node[pkg,text width=4.6cm] (bnk) at (12.85,-0.75) {\pk{BatchNLPKernels.jl}{ExaModels kernels, CPU or GPU}};
+  \draw[pdep] (ker.south) |- (bnk.west);
+  \draw[pdep] (alm.east) -- (15.6,2.25) |- (bnk.east);
+
+  \draw[dep] (0.2,-1.75) -- (0.9,-1.75) node[right,note] {depends on};
+  \draw[pdep] (2.7,-1.75) -- (3.4,-1.75) node[right,note] {planned, or package extension};
+\end{tikzpicture}
+\fi
+\end{document}

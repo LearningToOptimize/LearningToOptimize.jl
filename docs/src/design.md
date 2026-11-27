@@ -8,30 +8,15 @@ shared.
 
 ## Packages
 
-```mermaid
-graph TD
-    subgraph "LearningToOptimize.jl (this repository)"
-        CORE["lib/L2OCore.jl<br/>interfaces, problem wrapper,<br/>evaluators, datasets"]
-        MAIN["LearningToOptimize.jl<br/>penalty method, Flux training,<br/>dataset files, samplers, models"]
-        SOB["lib/L2OSobolev.jl<br/>derivative (Sobolev) supervision<br/>for any method"]
-        DATA["lib/L2OData.jl (planned)<br/>dataset file formats"]
-        KERN["lib/L2OKernels.jl (planned)<br/>batched GPU evaluators"]
-    end
-    DLL["L2ODLL.jl<br/>dual Lagrangian learning"]
-    DC3["L2ODC3.jl<br/>completion + correction"]
-    ALM["L2OALM.jl<br/>primal-dual ALM"]
-    LDF["LDF (planned)<br/>Lagrangian dual framework"]
-    BNK["BatchNLPKernels.jl<br/>ExaModels kernels"]
-    MAIN --> CORE
-    SOB --> CORE
-    DATA -.-> CORE
-    KERN -.-> CORE
-    KERN -.-> BNK
-    DLL --> CORE
-    DC3 --> CORE
-    ALM --> CORE
-    LDF --> CORE
-    ALM -.-> BNK
+```@raw html
+<figure class="fig has-compact">
+```
+![Package map. Inside the LearningToOptimize.jl repository, LearningToOptimize and L2OSobolev depend on L2OCore (method families, problem wrapper, batched evaluators, datasets); L2OData and L2OKernels are planned. The method packages L2ODLL, L2ODC3 and L2OALM depend on L2OCore, and LDF is planned. L2OALM, and the planned L2OKernels, use BatchNLPKernels.jl through package extensions.](assets/diagrams/learningtooptimize--ecosystem.svg)
+
+![The same diagram in a narrow layout.](assets/diagrams/learningtooptimize--ecosystem-compact.svg)
+```@raw html
+<figcaption><b>Every package depends on <code>L2OCore</code>, and on nothing else of the ecosystem.</b> Solid arrows are dependencies; dashed boxes and arrows are planned packages, or package extensions (weak dependencies).</figcaption>
+</figure>
 ```
 
 | package | role | dependencies |
@@ -74,35 +59,15 @@ package work and there is a single place to search.
 
 ## Type hierarchy
 
-```mermaid
-classDiagram
-    class AbstractL2OMethod
-    class AbstractPrimalMethod
-    class AbstractDualMethod
-    class AbstractPrimalDualMethod
-    class AbstractMethodWrapper
-    AbstractL2OMethod <|-- AbstractPrimalMethod
-    AbstractL2OMethod <|-- AbstractDualMethod
-    AbstractL2OMethod <|-- AbstractPrimalDualMethod
-    AbstractL2OMethod <|-- AbstractMethodWrapper
-    AbstractPrimalMethod <|-- PenaltyMethod
-    AbstractPrimalMethod <|-- DC3
-    AbstractPrimalMethod <|-- LDF
-    AbstractDualMethod <|-- DLL
-    AbstractPrimalDualMethod <|-- ALM
+```@raw html
+<figure class="fig has-compact">
+```
+![Type hierarchy in three trees. Methods: AbstractL2OMethod with AbstractPrimalMethod (SupervisedMSE, PenaltyMethod, DC3, FSNet, LDF planned), AbstractDualMethod (DualLagrangianLearning), AbstractPrimalDualMethod (ALMMethod) and AbstractMethodWrapper (BoundedOutput, ProjectionRepair, SobolevRegularized). Problem classes: AbstractProblemClass with AbstractConvexClass (LinearConic, ConvexQuadratic), SmoothNonlinear and MixedInteger. Evaluators: AbstractEvaluator with MatrixEvaluator, JuMPEvaluator and a planned kernel evaluator.](assets/diagrams/learningtooptimize--types.svg)
 
-    class AbstractProblemClass
-    class AbstractConvexClass
-    AbstractProblemClass <|-- AbstractConvexClass
-    AbstractConvexClass <|-- LinearConic
-    AbstractConvexClass <|-- ConvexQuadratic
-    AbstractProblemClass <|-- SmoothNonlinear
-    AbstractProblemClass <|-- MixedInteger
-
-    class AbstractEvaluator
-    AbstractEvaluator <|-- MatrixEvaluator
-    AbstractEvaluator <|-- JuMPEvaluator
-    AbstractEvaluator <|-- BatchKernelEvaluator_planned
+![The same diagram in a narrow layout.](assets/diagrams/learningtooptimize--types-compact.svg)
+```@raw html
+<figcaption><b>Three small hierarchies.</b> Concrete types are defined where they are implemented: <code>SupervisedMSE</code>, the repair wrappers, the problem classes and the evaluators in <code>L2OCore</code>; <code>PenaltyMethod</code> in LearningToOptimize; <code>SobolevRegularized</code> in L2OSobolev; <code>DC3</code> and <code>FSNet</code> in L2ODC3; <code>DualLagrangianLearning</code> (built by <code>L2ODLL.DLLMethod()</code>) in L2ODLL; <code>ALMMethod</code> in L2OALM.</figcaption>
+</figure>
 ```
 
 - **Families** (`AbstractPrimalMethod`, `AbstractDualMethod`,
@@ -119,18 +84,25 @@ classDiagram
 
 ## Data flow
 
-```mermaid
-flowchart LR
-    M["JuMP model<br/>with MOI.Parameter"] --> PP["ParametricProblem<br/>(layouts + class)"]
-    PP --> PIPE["L2OPipeline(problem, method)<br/>supports? → decompose"]
-    PIPE --> GD["generate_data<br/>(sampler, solver)"]
-    GD --> DS["L2ODataset<br/>inputs, primal?, dual?,<br/>objective?, derivatives?"]
-    DS --> TR["train proxy<br/>minimize loss(pipe, P, proxy(P))"]
-    TR --> PX["proxy(P)"]
-    PX --> CO["complete(pipe, P, raw)"]
-    CO --> PR["Prediction(primal, dual)"]
-    PR --> EV["evaluate → EvaluationReport<br/>objective, violations,<br/>dual bound, gap"]
+```@raw html
+<figure class="fig has-compact">
 ```
+![How an optimization proxy is trained and used. Parametric problem: OPT of p is the minimum over x of f of x and p subject to g_i of x and p in S_i, with p drawn by a sampler. Proxy: a network phi_theta maps p to a raw output z. Method: an optional BoundedOutput layer, then either the training loss ell of phi_theta of p and p, or at inference complete, giving x-hat and y-hat, and an optional ProjectionRepair; evaluate reports objective, violations, dual bound and gap. A dashed arrow returns the gradient of the expected loss to theta.](assets/diagrams/learningtooptimize--method.svg)
+
+![The same diagram in a narrow layout.](assets/diagrams/learningtooptimize--method-compact.svg)
+```@raw html
+<figcaption><b>The pipeline as the reader uses it.</b> The same objects as the table below: the problem wrapper, the proxy, the method's loss and completion, and the evaluation.</figcaption>
+</figure>
+```
+
+| step | call | result |
+|:--|:--|:--|
+| wrap the model | `ParametricProblem(model)` | layouts and problem class |
+| build the pipeline | `L2OPipeline(problem, method)` | checks `supports`, runs `decompose` |
+| generate data | `generate_data(pipe; sampler, optimizer)` | `L2ODataset`: inputs, and optionally primal, dual, objective, derivatives |
+| train | minimize `loss(pipe, P, proxy(P))` | a trained proxy |
+| complete | `complete(pipe, P, raw)` | `Prediction(primal, dual)` |
+| evaluate | `evaluate(pipe, P, prediction)` | `EvaluationReport`: objective, violations, dual bound, gap |
 
 Layouts are fixed once by `ParametricProblem`:
 
@@ -145,28 +117,14 @@ BatchNLPKernels and keeps every per-instance quantity a contiguous column.
 
 ## Method lifecycle
 
-```mermaid
-sequenceDiagram
-    participant U as user
-    participant P as L2OPipeline
-    participant M as method package
-    participant C as L2OCore fallbacks
-    U->>P: L2OPipeline(problem, method)
-    P->>M: supports(method, class)?
-    alt not supported
-        P-->>U: UnsupportedProblemError
-    end
-    P->>M: decompose(problem, method)
-    M-->>C: (fallback by family)
-    U->>P: generate_data(pipe; sampler, n)
-    P->>M: generate_data(method, pipe; …)
-    loop training
-        U->>P: loss(pipe, P, proxy(P); targets, proxy)
-        P->>M: loss(method, pipe, …)
-    end
-    U->>P: complete(pipe, P, proxy(P))
-    U->>P: evaluate(pipe, P, prediction)
-```
+| order | the user calls | the pipeline dispatches to | if the method defines nothing |
+|:--|:--|:--|:--|
+| 1 | `L2OPipeline(problem, method)` | `supports(method, class)` | `false`: `UnsupportedProblemError` |
+| 2 | (same call) | `decompose(problem, method)` | fallback by family |
+| 3 | `generate_data(pipe; sampler, n)` | `generate_data(method, pipe; …)` | sample and solve, labels by family |
+| 4 | `loss(pipe, P, proxy(P); targets, proxy)`, in the training loop | `loss(method, pipe, …)` | supervised MSE |
+| 5 | `complete(pipe, P, proxy(P))` | `complete(method, pipe, P, raw)` | split the raw output |
+| 6 | `evaluate(pipe, P, prediction)` | the evaluator functions | — |
 
 What a method package writes:
 
@@ -234,14 +192,13 @@ Every loss, completion and evaluation is expressed through the `AbstractEvaluato
 The plan for nonlinear problems and for an **ExaModels front end** is a single
 kernel backend:
 
-```mermaid
-flowchart LR
-    J["JuMP model<br/>+ MOI.Parameter"] -->|"JuMP → ExaModels<br/>(function-level conversion)"| E["parametric ExaModel"]
-    X["ExaModels model<br/>(user-written)"] --> E
-    E --> BM["BatchNLPKernels.BatchModel"]
-    BM --> KE["kernel evaluator<br/>(AbstractEvaluator, package extension)"]
-    KE --> L["losses / completions / evaluation<br/>on CPU or GPU"]
-```
+| stage | object | provided by |
+|:--|:--|:--|
+| front end | a JuMP model with `MOI.Parameter`s, converted function by function, or an ExaModels model written by the user | JuMP → ExaModels conversion (planned) |
+| model | a parametric `ExaModel` | ExaModels |
+| batch | `BatchNLPKernels.BatchModel` | BatchNLPKernels.jl |
+| evaluator | a kernel evaluator implementing the `AbstractEvaluator` functions | package extension `L2OCore` + BatchNLPKernels (planned) |
+| use | losses, completions and evaluation on CPU or GPU | every method, unchanged |
 
 - Problems stated in JuMP or directly in ExaModels end up as a parametric
   `ExaModel`; a `BatchModel` from BatchNLPKernels provides batched objective,

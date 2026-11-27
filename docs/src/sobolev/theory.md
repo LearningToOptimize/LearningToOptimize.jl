@@ -89,6 +89,30 @@ sparse, stochastic subset of its entries chosen *when the data is labeled*.
 
 ## Masked Sobolev loss
 
+```@raw html
+<figure class="fig has-compact">
+```
+![Value-only training: sampled parameters p are solved for the decision y-star equal to g of p_i, and the network g-hat_theta is fitted to these labels through the value loss alone; no derivative path appears.](../assets/diagrams/masked-sobolev--direct-matching.svg)
+
+![The same diagram in a narrow layout.](../assets/diagrams/masked-sobolev--direct-matching-compact.svg)
+```@raw html
+<figcaption><b>With $\lambda = 0$, (S4) is value matching.</b> The solver only labels data: each sampled $p_i$ is solved for $g(p_i)$, and the proxy is fitted to these labels.</figcaption>
+</figure>
+```
+
+```@raw html
+<figure class="fig has-compact">
+```
+![Masked Sobolev training: sampled parameters p feed the network and the solver; the solution store gives the reference decision and, through DiffOpt, the reference sensitivities on the masked entries; automatic differentiation of the network gives the proxy sensitivities on the same entries; the loss combines both discrepancies.](../assets/diagrams/sobolev.svg)
+
+![The same diagram in a narrow layout.](../assets/diagrams/sobolev-compact.svg)
+```@raw html
+<figcaption><b>The masked derivative term adds the solver's local response.</b> In the dataset lane each sampled $p_i$ is solved and DiffOpt returns the selected sensitivities; in the training lane automatic differentiation returns the matching entries of the proxy Jacobian, and the loss combines the value term with the masked derivative term. Figure 1 of [R26].</figcaption>
+</figure>
+```
+
+Both figures are from the paper's website and keep its symbols. The first writes the decision as $\mathbf y$ (here $x$) and the inequalities as $h(\mathbf y; p) \ge 0$ (here $-h \le 0$ in (S1)); in the second, $\mathbf x^*$ and $\tilde{\mathbf x}$ are $g(p_i)$ and $\hat g_\theta(p_i)$, and $\mathbf s$ is the store of solved instances.
+
 Given tuples ``(p_i, g(p_i), Dg(p_i))``, the first-order masked Sobolev loss is
 
 ```math
@@ -120,6 +144,15 @@ proxy where neighbouring samples have conflicting active-set sensitivities,
 and keeping 5–10% of the entries gave lower infeasibility on AC-OPF (Table 2
 of [R26]; its reported settings use densities of 5–25%, weights
 ``λ ∈ [0.1, 4.35]`` and mini-batches of 32).
+
+```@raw html
+<figure class="fig inset">
+```
+![Two bar charts. Top: mean absolute infeasibility on IEEE-300, PEGASE-1k and RTE-6k is 0.0099, 0.0066 and 0.0042 with masked Sobolev training against 0.0116, 0.0098 and 0.0059 value-only. Bottom: on IEEE-300, infeasibility with 5, 10, 25 and 100 percent of Jacobian entries retained is 0.0099, 0.0094, 0.0141 and 0.0517, against a dashed value-only line at 0.0116.](../assets/results/masked-sobolev-acopf.svg)
+```@raw html
+<figcaption><b>Where active sets multiply, derivative labels improve feasibility, and only with sparse masks.</b> Mean absolute infeasibility on three AC-OPF networks (top) and against mask density on IEEE-300 (bottom); dense matching is worse than no derivative labels. Published results of [R26], Tables 1 and 2; this package implements the method and does not re-run these experiments.</figcaption>
+</figure>
+```
 
 The same estimator applies to directional labels: for pullbacks the mask acts
 on the ``d`` entries of ``Dg^⊤ w``, for pushforwards on the ``n`` entries of
