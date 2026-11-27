@@ -22,6 +22,13 @@ html body .content figure.fig img {
 }
 html body .content figure.fig.inset { max-width: 560px; }
 html body .content figure.fig.inset img { max-width: 560px; }
+/* Two charts side by side; stacked on narrow screens. */
+html body .content figure.fig.pair p { display: flex; gap: 12px; justify-content: center; }
+html body .content figure.fig.pair img { flex: 1 1 0; min-width: 0; max-width: 374px; }
+@media (max-width: 640px) {
+  html body .content figure.fig.pair p { flex-direction: column; align-items: center; }
+  html body .content figure.fig.pair img { max-width: 420px; }
+}
 html body .content figure.fig figcaption {
   margin: 0.7em auto 0;
   max-width: 700px;
