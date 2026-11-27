@@ -64,9 +64,10 @@ The [documentation example](https://LearningToOptimize.github.io/LearningToOptim
 compares this with plain value supervision (several times lower test error from 8 samples).
 
 <p align="center">
-  <img src="../../docs/src/assets/results/masked-sobolev-acopf.svg" width="460" alt="Two bar charts. Top: mean absolute infeasibility on IEEE-300, PEGASE-1k and RTE-6k is 0.0099, 0.0066 and 0.0042 with masked Sobolev training against 0.0116, 0.0098 and 0.0059 value-only. Bottom: on IEEE-300, infeasibility with 5, 10, 25 and 100 percent of Jacobian entries retained is 0.0099, 0.0094, 0.0141 and 0.0517, against a dashed value-only line at 0.0116.">
+  <img src="../../docs/src/assets/results/masked-sobolev-acopf-mean.svg" width="380" alt="Bar chart of mean absolute infeasibility on IEEE-300, PEGASE-1k and RTE-6k: 0.0099, 0.0066 and 0.0042 with masked Sobolev training against 0.0116, 0.0098 and 0.0059 value-only.">
+  <img src="../../docs/src/assets/results/masked-sobolev-acopf-worstcase.svg" width="380" alt="Violin plot of the per-instance reduction in worst-case constraint violation, in percent, on IEEE-300, PEGASE-1k and RTE-6k. Almost all mass lies above zero, where the Sobolev proxy has the smaller worst case; reported medians are about 18, 400 and 180 percent.">
 </p>
-<p align="center"><i>Published results of the paper (Tables 1 and 2), not re-run by this package: on AC optimal power flow, masked Sobolev training lowers the mean absolute infeasibility on three networks, and only with sparse masks; dense matching (100% of the Jacobian entries) is worse than no derivative labels.</i></p>
+<p align="center"><i>Published results of the paper, not re-run by this package. On AC optimal power flow, masked Sobolev training lowers the mean absolute infeasibility on three networks by about 15–33% (first chart, Table 1). Per test instance the gain is larger (second chart, Figure 3, redrawn from the paper's figure): the reduction in the largest constraint violation, normalized by the largest Sobolev violation on the test set, has medians of about 18%, 400% and 180%, and the Sobolev proxy has the larger worst case on fewer than 15% of instances.</i></p>
 
 ## What you need to provide
 

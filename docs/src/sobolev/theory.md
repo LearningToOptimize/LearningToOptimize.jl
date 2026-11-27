@@ -146,11 +146,17 @@ of [R26]; its reported settings use densities of 5–25%, weights
 ``λ ∈ [0.1, 4.35]`` and mini-batches of 32).
 
 ```@raw html
+<figure class="fig pair">
+```
+![Bar chart of mean absolute infeasibility on IEEE-300, PEGASE-1k and RTE-6k: 0.0099, 0.0066 and 0.0042 with masked Sobolev training against 0.0116, 0.0098 and 0.0059 value-only.](../assets/results/masked-sobolev-acopf-mean.svg) ![Violin plot of the per-instance reduction in worst-case constraint violation, in percent, on IEEE-300, PEGASE-1k and RTE-6k. Almost all mass lies above zero, where the Sobolev proxy has the smaller worst case; reported medians are about 18, 400 and 180 percent.](../assets/results/masked-sobolev-acopf-worstcase.svg)
+```@raw html
+<figcaption><b>Where active sets multiply, derivative labels lower the mean infeasibility moderately and the worst case far more.</b> Mean: absolute infeasibility absolute infeasibility on three AC-OPF networks, about 15–33% lower (Table 1 of [R26]). Worst case: for each test instance, the largest constraint violation of the value-only proxy minus that of the Sobolev proxy, normalized by the largest Sobolev violation on the test set; above zero the Sobolev proxy has the smaller worst case. It has the larger one on fewer than 15% of instances, and the medians are about 18%, 400% and 180% (Figure 3 of [R26], redrawn from the paper's figure). Published results; this package implements the method and does not re-run these experiments.</figcaption>
+</figure>
 <figure class="fig inset">
 ```
-![Two bar charts. Top: mean absolute infeasibility on IEEE-300, PEGASE-1k and RTE-6k is 0.0099, 0.0066 and 0.0042 with masked Sobolev training against 0.0116, 0.0098 and 0.0059 value-only. Bottom: on IEEE-300, infeasibility with 5, 10, 25 and 100 percent of Jacobian entries retained is 0.0099, 0.0094, 0.0141 and 0.0517, against a dashed value-only line at 0.0116.](../assets/results/masked-sobolev-acopf.svg)
+![Bar chart for IEEE-300: mean absolute infeasibility with 5, 10, 25 and 100 percent of Jacobian entries retained is 0.0099, 0.0094, 0.0141 and 0.0517, against a dashed value-only line at 0.0116.](../assets/results/masked-sobolev-acopf-mask.svg)
 ```@raw html
-<figcaption><b>Where active sets multiply, derivative labels improve feasibility, and only with sparse masks.</b> Mean absolute infeasibility on three AC-OPF networks (top) and against mask density on IEEE-300 (bottom); dense matching is worse than no derivative labels. Published results of [R26], Tables 1 and 2; this package implements the method and does not re-run these experiments.</figcaption>
+<figcaption><b>Only sparse masks help.</b> Mean absolute infeasibility on IEEE-300 against the share of Jacobian entries retained; dense matching is worse than no derivative labels. Published results of [R26], Tables 1 and 2.</figcaption>
 </figure>
 ```
 
