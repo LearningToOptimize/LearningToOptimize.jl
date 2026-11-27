@@ -1,0 +1,129 @@
+% L2OSobolev: masked Sobolev supervision as a regularizer on primal and primal-dual methods.
+%
+% Dataset: each sampled p_i is solved (S1) for the value label g(p_i); a
+% sensitivity oracle (DiffOpt, implicit differentiation of the KKT conditions
+% (S3), or finite differences) gives the derivative label Dg(p_i).
+% Training: the proxy g-hat_theta enters the inner method's loss (any primal or
+% primal-dual method; value matching for supervised methods); its input Jacobian, masked by M,
+% is matched to the masked label (S5); the total loss is (S4).
+% The layout follows Fig. 1 of the masked Sobolev paper (NeurIPS 2026);
+% notation follows docs/src/sobolev/theory.md.
+%
+% Build: make -C docs/src/assets/diagrams/src
+%   pdflatex -jobname=l2osobolev--regularizer sobolev.tex          -> wide layout
+%   pdflatex -jobname=l2osobolev--regularizer-compact sobolev.tex  -> narrow layout
+\documentclass[tikz,border=4pt]{standalone}
+\input{l2ostyle.tex}
+
+\newcommand{\solve}{%
+  $\begin{aligned}
+    g(p_i)=x^\star(p_i)\in\;&\arg\min_{x}\;\; f(x;p_i)\\[1pt]
+    &\;\text{s.t.}\;\; c(x;p_i)=0,\\
+    &\;\phantom{\text{s.t.}}\;\; h(x;p_i)\le 0
+  \end{aligned}$}
+\newcommand{\masked}{%
+  $\begin{aligned}
+    \ell_d\big(&\mathcal{M}\odot D\hat g_\theta(p_i),\\
+    &\mathcal{M}\odot Dg(p_i)\big)\;\;\text{(S5)}
+  \end{aligned}$}
+\newcommand{\total}{$\mathcal{L}(\theta)=\text{inner loss}\;+\;\lambda\,\tfrac1N\textstyle\sum_i\ell_d$\;\;(S4)}
+
+\begin{document}
+\ifcompact
+% ============================ narrow (phone) layout ============================
+\begin{tikzpicture}
+  % ---- dataset ----
+  \lane{0}{8.4}{7.6}{13.6}
+  \node[title] at (0.2,13.25) {\textcolor{dTeal}{\bfseries Dataset:} values and sensitivities};
+  \cardbox{0.3}{10.65}{7.3}{12.9}
+  \node[anchor=north west,font=\small,inner sep=0pt] at (0.45,12.7) {\solve};
+  \node[note,anchor=south east] at (7.25,10.7) {(S1)};
+  \node[chip,align=center,font=\footnotesize] (or) at (3.1,9.45) {DiffOpt: KKT sensitivity (S3)\\or finite differences};
+  \draw[fwd] (3.1,10.65) -- (or.north);
+  \node[chip,fill=dPeach] (dg) at (6.55,9.45) {$Dg(p_i)$};
+  \draw[fwd] (or.east) -- (dg.west);
+  % ---- training ----
+  \lane{0}{-0.75}{7.6}{7.8}
+  \node[title] at (0.2,7.45) {\textcolor{dTeal}{\bfseries Training:} inner loss $+\;\lambda\,\cdot$ masked term};
+  \node[store] (p) at (0.85,5.9) {$p_i$};
+  \draw[fwd] (p.north) -- (0.85,10.65);
+  \net{3.1,5.9}{px}{0}
+  \node[font=\small] at (3.1,4.75) {$\hat g_\theta$};
+  \draw[fwd] (p.east) -- (pxsheet.west);
+  \coordinate (fk) at (4.45,5.9);
+  \draw[fwd] (pxout.east) -- (fk) -- (4.45,3.75) -- (3.95,3.75);
+  % inner loss
+  \cardbox{0.3}{3.1}{3.95}{4.4}
+  \node[font=\small\bfseries,anchor=west] at (0.45,4.1) {inner method loss};
+  \node[font=\footnotesize,anchor=west] at (0.45,3.5) {e.g.\ $\ell(\hat g_\theta(p_i),\,g(p_i))$};
+  % value label from the dataset, around the left
+  \draw[tgt] (0.3,11.75) -- (-0.3,11.75) -- (-0.3,3.75) -- (0.3,3.75);
+  \node[font=\footnotesize,text=dOrange,fill=white,inner sep=1pt] at (-0.3,8.1) {$g(p_i)$};
+  % derivative path
+  \draw[fwd,dashed] (fk) -- (5.7,5.9) -- (5.7,2.85);
+  \node[chip,fill=white,draw=dShadow,font=\footnotesize] at (5.7,4.45) {$D\hat g_\theta(p_i)$};
+  \draw[tgt] (dg.south) -- (6.55,2.85);
+  % masked term
+  \cardbox{2.2}{1.3}{7.3}{2.85}
+  \maskgrid{2.75,2.05}
+  \node[font=\footnotesize] at (2.75,1.4) {$\mathcal{M}$};
+  \node[anchor=west,font=\small,inner sep=0pt] at (3.3,2.07) {\masked};
+  % total
+  \node[lnode] (L) at (1.0,0.45) {$\mathcal{L}$};
+  \draw[fwd] (1.0,3.1) -- (L.north);
+  \draw[fwd] (4.8,1.3) -- (4.8,0.45) -- (L.east);
+  \node[font=\footnotesize,anchor=west] at (0.3,-0.35) {\total};
+\end{tikzpicture}
+\else
+% =============================== wide layout ===================================
+\begin{tikzpicture}
+  % ---- dataset ----
+  \lane{0}{0}{6.6}{7.0}
+  \node[title] at (0.2,6.65) {\textcolor{dTeal}{\bfseries Dataset:} values and sensitivities};
+  \cardbox{0.3}{3.95}{6.3}{6.3}
+  \node[anchor=north west,font=\small,inner sep=0pt] at (0.45,6.15) {\solve};
+  \node[note,anchor=south east] at (6.25,4.0) {(S1)};
+  \node[chip,align=center,font=\footnotesize] (or) at (3.3,2.95) {DiffOpt: KKT sensitivity (S3)\\or finite differences};
+  \draw[fwd] (3.3,3.95) -- (or.north);
+  \node[chip,fill=dPeach] (dg) at (3.3,1.55) {$Dg(p_i)$};
+  \draw[fwd] (or.south) -- (dg.north);
+  \node[note] at (3.3,0.8) {full Jacobian, pullbacks or pushforwards};
+
+  % ---- training ----
+  \lane{7.2}{0}{19.4}{7.0}
+  \node[title] at (7.4,6.65) {\textcolor{dTeal}{\bfseries Training:} inner method loss $+\;\lambda\,\cdot$ masked Sobolev term};
+  \node[store] (p) at (8.1,3.9) {$p_i$};
+  \draw[fwd] (p.north) -- (8.1,4.75) -- (6.3,4.75);
+  \net{10.2,3.9}{px}{0}
+  \node[font=\small] at (10.2,2.75) {$\hat g_\theta$};
+  \draw[fwd] (p.east) -- (pxsheet.west);
+  \coordinate (fk) at (12.2,3.9);
+  \draw[fwd] (pxout.east) -- (fk) -- (12.2,5.3) -- (13.4,5.3);
+  \node[font=\footnotesize,anchor=east] at (12.1,4.75) {$\hat g_\theta(p_i)$};
+  % inner loss
+  \cardbox{13.4}{4.5}{17.7}{6.25}
+  \node[font=\small\bfseries,anchor=west] at (13.55,5.95) {inner method loss};
+  \node[font=\footnotesize,anchor=west] at (13.55,5.4) {e.g.\ value matching $\ell(\hat g_\theta(p_i),\,g(p_i))$};
+  \node[note,anchor=west] at (13.55,4.85) {supervised, penalty, ALM, completion layers};
+  % value label
+  \draw[tgt] (6.3,5.85) -- (13.4,5.85);
+  \node[font=\footnotesize,text=dOrange,fill=white,inner sep=1pt] at (9.6,5.85) {value label $g(p_i)$};
+  % derivative path
+  \draw[fwd,dashed] (fk) -- (12.2,2.2) -- (13.4,2.2);
+  \node[chip,fill=white,draw=dShadow,font=\footnotesize] at (12.2,3.0) {$D\hat g_\theta(p_i)$};
+  \node[note,anchor=north] at (10.2,2.4) {nested AD or central differences};
+  \draw[tgt] (dg.east) -- (13.4,1.55);
+  \node[font=\footnotesize,text=dOrange,fill=white,inner sep=1pt] at (9.6,1.55) {derivative label $Dg(p_i)$};
+  % masked term
+  \cardbox{13.4}{0.9}{17.7}{2.75}
+  \maskgrid{14.0,1.95}
+  \node[font=\footnotesize] at (14.0,1.05) {$\mathcal{M}$};
+  \node[anchor=west,font=\small,inner sep=0pt] at (14.6,1.85) {\masked};
+  % total
+  \node[lnode] (L) at (18.55,3.6) {$\mathcal{L}$};
+  \draw[fwd] (17.7,5.3) -| (L.north);
+  \draw[fwd] (17.7,1.85) -| (L.south);
+  \node[font=\footnotesize,anchor=east] at (18.05,3.6) {\total};
+\end{tikzpicture}
+\fi
+\end{document}

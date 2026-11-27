@@ -1,0 +1,86 @@
+/* Figures: a white paper-figure frame, centred, with the caption below.
+   A figure with class "has-compact" holds a wide and a "-compact" image;
+   the compact one replaces the wide one on narrow screens. */
+html body .content figure.fig {
+  margin: 1.75em auto;
+  max-width: 760px;
+  padding: 0;
+  background: transparent;
+  text-align: center;
+}
+html body .content figure.fig img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 760px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid #e3e5e8;
+  border-radius: 6px;
+  padding: 12px;
+  box-sizing: border-box;
+}
+html body .content figure.fig.inset { max-width: 560px; }
+html body .content figure.fig.inset img { max-width: 560px; }
+html body .content figure.fig figcaption {
+  margin: 0.7em auto 0;
+  max-width: 700px;
+  font-size: 0.875em;
+  line-height: 1.5;
+  text-align: left;
+  opacity: 0.85;
+  font-style: normal;
+  padding: 0;
+  background: transparent;
+}
+html body .content figure.fig figcaption b { font-weight: 600; }
+html body .content figure.fig.hero { margin-top: 0.5em; }
+html body .content figure.fig.hero figcaption { text-align: center; }
+html body .content p.lede {
+  font-size: 1.12em;
+  line-height: 1.6;
+}
+html body .content p.eyebrow {
+  margin: -0.4em 0 1.2em;
+  font-size: 0.8em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+/* Documenter wraps a Markdown image in a paragraph; keep it flush. */
+html body .content figure.fig p { margin: 0; line-height: 0; font-size: 0; }
+/* Wide or compact variant. */
+html body .content figure.fig img[src*="-compact"] { display: none !important; }
+@media (max-width: 640px) {
+  html body .content figure.fig { margin: 1.25em 0; max-width: 100%; }
+  html body .content figure.fig.has-compact img:not([src*="-compact"]) { display: none !important; }
+  html body .content figure.fig.has-compact img[src*="-compact"] { display: block !important; max-width: 420px; }
+  html body .content figure.fig img { padding: 6px; }
+}
+/* Dark themes: keep the white paper, add a subtle ring instead of the light border. */
+html.theme--documenter-dark body .content figure.fig img,
+html.theme--catppuccin-frappe body .content figure.fig img,
+html.theme--catppuccin-macchiato body .content figure.fig img,
+html.theme--catppuccin-mocha body .content figure.fig img {
+  border-color: transparent;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+/* Layout: a wider content column on large screens (Documenter's default is 52rem),
+   still short of full width so lines stay readable; more air around lists and
+   display equations. */
+@media screen and (min-width: 1056px) {
+  html body #documenter .docs-main { max-width: 68rem !important; }
+  html body #documenter .docs-main > article { max-width: 66rem !important; }
+}
+html body .content p, html body .content li { line-height: 1.65; }
+html body .content ul, html body .content ol { margin-top: 0.6em; margin-bottom: 1.1em; }
+html body .content li + li { margin-top: 0.45em; }
+html body .content li > p { margin-bottom: 0.45em; }
+html body .content .math-container {
+  margin: 1.1em 0 1.3em;
+  padding: 0.25em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+html body .content table td, html body .content table th { line-height: 1.5; }
