@@ -21,9 +21,6 @@ L2OSobolevDiffOptExt = ["DiffOpt", "JuMP"]
 L2OSobolevLuxExt = "Lux"
 L2OSobolevZygoteExt = "Zygote"
 
-[sources]
-L2OCore = {path = "../L2OCore"}
-
 [compat]
 Aqua = "0.8"
 ChainRulesCore = "1"
