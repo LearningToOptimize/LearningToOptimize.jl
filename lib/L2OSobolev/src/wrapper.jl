@@ -51,9 +51,10 @@ Pipeline behavior:
 The labels are meaningful where the solution map is differentiable at the
 training samples (LICQ, SOSC, strict complementarity; Remark 1 of the paper),
 and the proxy map must act column by column. The approximation
-benefit (Theorem 3 of the paper: uniform error ``≤ \\tfrac12 (M_g + M_{\\hat
-g}) δ^2`` under exact value and Jacobian interpolation, versus ``(L_g +
-L_{\\hat g}) δ`` for values only) holds in regions where the solution map is
+benefit (Theorem 3 of the paper: uniform error
+``≤ \\tfrac12 (M_g + M_{\\hat g}) δ^2`` under exact value and Jacobian
+interpolation, versus
+``(L_g + L_{\\hat g}) δ`` for values only) holds in regions where the solution map is
 ``C^1`` with Lipschitz Jacobian; it is not a statement about the convergence
 of training.
 """

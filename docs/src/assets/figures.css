@@ -66,3 +66,21 @@ html.theme--catppuccin-mocha body .content figure.fig img {
   border-color: transparent;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
+/* Layout: a wider content column on large screens (Documenter's default is 52rem),
+   still short of full width so lines stay readable; more air around lists and
+   display equations. */
+@media screen and (min-width: 1056px) {
+  html body #documenter .docs-main { max-width: 68rem !important; }
+  html body #documenter .docs-main > article { max-width: 66rem !important; }
+}
+html body .content p, html body .content li { line-height: 1.65; }
+html body .content ul, html body .content ol { margin-top: 0.6em; margin-bottom: 1.1em; }
+html body .content li + li { margin-top: 0.45em; }
+html body .content li > p { margin-bottom: 0.45em; }
+html body .content .math-container {
+  margin: 1.1em 0 1.3em;
+  padding: 0.25em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+html body .content table td, html body .content table th { line-height: 1.5; }

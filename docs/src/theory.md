@@ -22,11 +22,11 @@ where each ``\mathcal{S}_i`` is a MathOptInterface set (`EqualTo`,
 `constraint_refs` (in this order). Maximization is handled by the sign
 ``s = \texttt{objective\_sign}(problem) \in \{1, -1\}``: ``s f`` is minimized.
 
-A **proxy** ``\phi_\theta`` maps a batch of parameters ``P = [p_1, \dots,
-p_B]`` to raw outputs; a method's **completion** turns raw outputs into a
+A **proxy** ``\phi_\theta`` maps a batch of parameters
+``P = [p_1, \dots, p_B]`` to raw outputs; a method's **completion** turns raw outputs into a
 prediction ``(\hat X, \hat Y)`` of primal and/or dual solutions. Training
-minimizes a method-specific loss ``\mathbb{E}_{p \sim \mathcal{D}}
-[\ell(\phi_\theta(p); p)]`` over a parameter distribution ``\mathcal{D}``
+minimizes a method-specific loss
+``\mathbb{E}_{p \sim \mathcal{D}} [\ell(\phi_\theta(p); p)]`` over a parameter distribution ``\mathcal{D}``
 (an `AbstractParameterSampler`).
 
 ```@raw html
@@ -82,9 +82,10 @@ only the upper side is finite, free otherwise. An `Interval` row (not a cone)
 is treated as the pair ``f \ge l`` (multiplier ``\max(y_r,0)``) and
 ``f \le u`` (multiplier ``\min(y_r,0)``), which is the sign convention solvers
 report for its `ConstraintDual` (strong duality holds with this convention
-on a QP with an `Interval` row, which the tests use as a reference). Writing ``f_r = a_r^\top x + b_r^\top p +
-b^0_r`` for the function value of row ``r`` (all rows, box and conic), the
-Lagrangian of the minimization form (objective ``s f``) is
+on a QP with an `Interval` row, which the tests use as a reference). Writing
+``f_r = a_r^\top x + b_r^\top p + b^0_r`` for the function value of row ``r``
+(all rows, box and conic), the Lagrangian of the minimization form (objective
+``s f``) is
 
 ```math
 L(x, y; p) = s f(x; p) - \sum_{r} y_r\, f_r
@@ -92,32 +93,40 @@ L(x, y; p) = s f(x; p) - \sum_{r} y_r\, f_r
 \tag{T4}
 ```
 
-For a box row the last two terms equal ``-\max(y_r,0)(f_r - l_r) -
-\min(y_r,0)(f_r - u_r)``; for a conic block they reduce to ``-y_k^\top f_k``.
-For maximization, ``-L`` is exactly the MOI Lagrangian ``f + \sum_i y_i^\top
-(A_i x + b_i)``, which is why the minimization form uses the same ``y``.
+and the dual function is ``d(y; p) = \inf_x L(x, y; p)``.
 
-and the dual function is ``d(y; p) = \inf_x L(x, y; p)``. With
-``r(y; p) = s(c + H p) - A^\top y``:
+For a box row the last two terms equal
+``-\max(y_r,0)(f_r - l_r) - \min(y_r,0)(f_r - u_r)``; for a conic block they
+reduce to ``-y_k^\top f_k``. For maximization, ``-L`` is exactly the MOI
+Lagrangian ``f + \sum_i y_i^\top (A_i x + b_i)``, which is why the minimization
+form uses the same ``y``.
 
-- if ``Q = 0`` (LP/conic; this is the MOI dual objective above): ``d(y;p) = s(c_p^\top p + c_0) - y^\top(Bp + b)
-  + \text{box terms}`` when ``r(y;p) = 0``, and ``-\infty`` otherwise;
-- if ``sQ \succeq 0``: ``d(y;p) = s(c_p^\top p + c_0) - y^\top(Bp + b)
-  + \text{box terms} - \tfrac12 r^\top (sQ)^{+} r`` when ``r \in
-  \operatorname{range}(sQ)``, and ``-\infty`` otherwise (for invertible ``Q``
-  this is the MOI dual of a QP, ``-\tfrac12 z^\top Q^{-1} z + b_0 - \sum_i
-  y_i^\top b_i`` with ``z = -r``);
-- if ``sQ`` is not positive semidefinite, ``d(y; p) = -\infty`` for every
-  ``y``, so `dual_bound` returns ``-\infty`` (``+\infty`` for
-  maximization), even when the class was declared `ConvexQuadratic` by hand.
+With ``r(y; p) = s(c + H p) - A^\top y``:
+
+```math
+d(y;p) = \begin{cases}
+s(c_p^\top p + c_0) - y^\top(Bp + b) + \text{box terms}
+  & \text{if } Q = 0 \text{ and } r(y;p) = 0, \\[4pt]
+s(c_p^\top p + c_0) - y^\top(Bp + b) + \text{box terms} - \tfrac12 r^\top (sQ)^{+} r
+  & \text{if } sQ \succeq 0 \text{ and } r \in \operatorname{range}(sQ), \\[4pt]
+-\infty & \text{otherwise.}
+\end{cases}
+```
+
+The first case (LP/conic) is the MOI dual objective above. For invertible ``Q``
+the second case is the MOI dual of a QP,
+``-\tfrac12 z^\top Q^{-1} z + b_0 - \sum_i y_i^\top b_i`` with ``z = -r``. If
+``sQ`` is not positive semidefinite, ``d(y; p) = -\infty`` for every ``y``, so
+`dual_bound` returns ``-\infty`` (``+\infty`` for maximization), even when the
+class was declared `ConvexQuadratic` by hand.
 
 `dual_bound(evaluator, Y, P)` returns ``s\, d(y;p)`` together with the dual
 infeasibility (largest of the stationarity residual, sign violations and
 dual-cone distances).
 
 **Weak duality.** If ``y`` is dual feasible (signs and dual cones as above,
-and ``r(y;p) = 0`` or ``r \in \operatorname{range}(sQ)``), then ``d(y; p) \le
-s\,\mathrm{OPT}(p)``: the returned bound is ``\le \mathrm{OPT}(p)`` for
+and ``r(y;p) = 0`` or ``r \in \operatorname{range}(sQ)``), then
+``d(y; p) \le s\,\mathrm{OPT}(p)``: the returned bound is ``\le \mathrm{OPT}(p)`` for
 minimization and ``\ge`` for maximization. No convexity is needed: for any
 feasible ``x``, every subtracted term in (T4) is ``\ge 0`` by the sign
 conventions, so ``L(x,y;p) \le s f(x;p)``. Since dual feasibility does not
@@ -129,27 +138,40 @@ random instances.
 
 *Tolerance.* Numerically, ``r`` is accepted when ``\|r\|_\infty \le``
 `atol` (or the range residual is). The bound then holds up to the residual:
-since ``L`` is affine in ``x`` along the residual, ``d(y;p) \le
-s\,\mathrm{OPT}(p) + \|r\|_\infty \|x^\star\|_1`` for any optimal
+since ``L`` is affine in ``x`` along the residual,
+``d(y;p) \le s\,\mathrm{OPT}(p) + \|r\|_\infty \|x^\star\|_1`` for any optimal
 ``x^\star``. Methods that need exact bounds (DLL) complete ``y`` so that
 ``r = 0`` holds by construction.
 
-**Dual completion (DLL).** The DLL paper (Tanneau and Van Hentenryck,
-2024) writes the primal as ``\min c^\top x`` s.t. ``Ax \succeq_{\mathcal K}
-b``, ``Hx \succeq_{\mathcal C} h`` (its eq. (6)) and the dual as ``\max b^\top
-y + h^\top z`` s.t. ``A^\top y + H^\top z = c``, ``y \in \mathcal K^*``,
-``z \in \mathcal C^*`` (eq. (7)); with ``f = Ax - b`` this is exactly the MOI
-form above, so `dual_bound` of a completed DLL prediction is the bound
-``b^\top \hat y + h^\top \hat z`` of eq. (7a). Its Theorem 1 assumes that for
-every ``\hat y \in \mathcal K^*`` the inner problem (8) is strictly feasible
-in ``Hx \succ_{\mathcal C} h`` and bounded; then a completion ``\hat z``
-exists and ``(\hat y, \hat z)`` is dual feasible (Theorem 2: the optimal
-completion gives the strongest bound for fixed ``\hat y``). For finite
-variable bounds (its Example 1) the completion is ``\hat z^l = |c -
-A^\top \hat y|^+``, ``\hat z^u = |c - A^\top \hat y|^-`` (``\hat z^u \le 0``
-in MOI signs). The tests apply this completion to random ``\hat y`` and
-compare the bound with the solver optimum; ``\hat y = y^\star`` recovers the
-optimum.
+**Dual completion (DLL).** The DLL paper (Tanneau and Van Hentenryck, 2024)
+writes the primal (its eq. (6)) and the dual (eq. (7)) as
+
+```math
+\begin{aligned}
+&\min \; c^\top x
+  && \text{s.t.} \quad Ax \succeq_{\mathcal K} b, \quad Hx \succeq_{\mathcal C} h,
+  && \text{(6)} \\
+&\max \; b^\top y + h^\top z
+  && \text{s.t.} \quad A^\top y + H^\top z = c, \quad y \in \mathcal K^*, \quad z \in \mathcal C^*;
+  && \text{(7)}
+\end{aligned}
+```
+
+with ``f = Ax - b`` this is exactly the MOI form above, so `dual_bound` of a
+completed DLL prediction is the bound ``b^\top \hat y + h^\top \hat z`` of
+eq. (7a). Its Theorem 1 assumes that for every ``\hat y \in \mathcal K^*`` the
+inner problem (8) is strictly feasible in ``Hx \succ_{\mathcal C} h`` and
+bounded; then a completion ``\hat z`` exists and ``(\hat y, \hat z)`` is dual
+feasible (Theorem 2: the optimal completion gives the strongest bound for fixed
+``\hat y``). For finite variable bounds (its Example 1) the completion is
+
+```math
+\hat z^l = |c - A^\top \hat y|^+, \qquad \hat z^u = |c - A^\top \hat y|^-
+\qquad (\hat z^u \le 0 \text{ in MOI signs}).
+```
+
+The tests apply this completion to random ``\hat y`` and compare the bound with
+the solver optimum; ``\hat y = y^\star`` recovers the optimum.
 
 **Strong duality.** For a convex problem with a finite optimal value (LPs
 and convex QPs with affine constraints; for general cones under a constraint
@@ -244,8 +266,8 @@ is closed and convex, so (T7) has a unique solution, which is feasible up to
 the solver's tolerance. The projection onto a closed convex set is (firmly)
 nonexpansive (see, e.g., Bauschke and Combettes, *Convex Analysis and
 Monotone Operator Theory in Hilbert Spaces*, Ch. 4), so for every feasible
-``x``, in particular every optimal ``x^\star``, ``\|\Pi(\hat x) - x\| \le
-\|\hat x - x\|``: repair never moves a prediction away from the optimum.
+``x``, in particular every optimal ``x^\star``,
+``\|\Pi(\hat x) - x\| \le \|\hat x - x\|``: repair never moves a prediction away from the optimum.
 Feasible predictions are unchanged (to solver accuracy). The objective value
 need not improve. Projection layers are one of the remedies for infeasible proxies
 discussed in the survey of Kotary et al. (2021).

@@ -219,8 +219,8 @@ derivatives ``∂_θ ∂_p \hat g_θ`` are needed. Three backends are provided:
   (reverse over reverse): ``D\hat g_θ^⊤ w`` is one pullback, the full Jacobian
   one pullback of width ``nB`` with the ``n`` unit seeds, and
   ``D\hat g_θ v`` the Jacobian applied to ``v``;
-- [`CentralDifferences`](@ref L2OSobolev.CentralDifferences): ``D\hat g_θ v ≈
-  (\hat g_θ(p + hv) - \hat g_θ(p - hv))/2h`` with truncation error
+- [`CentralDifferences`](@ref L2OSobolev.CentralDifferences):
+  ``D\hat g_θ v ≈ (\hat g_θ(p + hv) - \hat g_θ(p - hv))/2h`` with truncation error
   ``O(h^2 \|D^3 \hat g_θ\|)`` and rounding error
   ``O(ε(\|\hat g_θ\| + \|D\hat g_θ\|\,\|p\|_∞)/h)``, balanced by the default
   ``h = ε^{1/3}\max(1, \|P\|_∞)``. The outer AD only differentiates forward
@@ -285,8 +285,8 @@ derivative supervision only helps when neighbouring sensitivities are similar.
   inside each region, so the sensitivities are zero and carry no
   interpolation information ([R26], Sec. 5.3).
 - **Failed samples kept** (`drop_failed = false`): their labels are `NaN`, and
-  `NaN` entries poison the loss even where the mask is zero (``0 · \mathrm{NaN}
-  = \mathrm{NaN}``); keep the default or filter them.
+  `NaN` entries poison the loss even where the mask is zero
+  (``0 · \mathrm{NaN} = \mathrm{NaN}``); keep the default or filter them.
 - **Integer decisions**: the solution map is piecewise constant;
   sensitivities are zero or undefined. `SobolevRegularized` does not refuse
   `MixedInteger` problems if the inner method supports them, but the labels
